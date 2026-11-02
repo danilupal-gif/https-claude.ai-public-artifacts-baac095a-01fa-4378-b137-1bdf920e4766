@@ -1,3 +1,4 @@
 # Daily briefings contain customer information; keep them out of git
 deep-reset-chief-of-staff/briefings/*
 !deep-reset-chief-of-staff/briefings/README.md
+consulting-chief-of-staff/briefings/
