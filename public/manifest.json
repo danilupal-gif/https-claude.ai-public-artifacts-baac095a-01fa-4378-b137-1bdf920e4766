@@ -1,0 +1,9 @@
+{
+  "name": "The Deep Reset · Operational Plan",
+  "short_name": "Deep Reset Plan",
+  "description": "Customer Operations Setup pilot for Dreamworks365 The Deep Reset, prepared by ÉLEVÉ Business Partners.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f6f2",
+  "theme_color": "#1e3b2c"
+}
