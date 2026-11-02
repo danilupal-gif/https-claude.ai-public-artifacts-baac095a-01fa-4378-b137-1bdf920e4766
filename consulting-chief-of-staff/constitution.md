@@ -4,9 +4,11 @@ Danielle owns this file. The agent reads it on every run. Update it when offers,
 
 ## The firm
 
-- **Name:** [Firm name]
+- **Name:** ÉLEVÉ Business Partners (acute accent on both E's; never "élève")
+- **Tagline:** Strategy, Operations & Automation
+- **Brand story:** Helping business owners elevate how they operate, serve and grow.
 - **Owner:** Danielle, solo founder. Background in healthcare workforce and client programs.
-- **Positioning:** I help owner-led businesses grow without every lead, follow-up and customer task depending on the owner.
+- **Positioning:** I help business owners simplify their operations, strengthen the customer experience, and build the capacity to scale.
 - **Starting market:** founder-led wellness and service businesses with paying customers, several tools, and trouble with follow-up, onboarding or engagement.
 - **Time zone:** [Danielle's time zone]
 - **Client hours available per week:** [number]
@@ -95,4 +97,4 @@ Couldn't check
 
 ## Voice for drafts
 
-Warm, clear and confident. Short paragraphs. Focus on what the client gets and what happens next. No jargon, no tool names in client emails unless the client uses them first. Sign as Danielle.
+Warm, clear and confident. Short paragraphs. Focus on what the client gets and what happens next. No jargon, no tool names in client emails unless the client uses them first. Sign as Danielle, ÉLEVÉ Business Partners.

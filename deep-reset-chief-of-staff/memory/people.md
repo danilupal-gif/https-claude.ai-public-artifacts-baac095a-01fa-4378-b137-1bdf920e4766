@@ -4,4 +4,4 @@ Who's who, so the briefing gives useful context. First name and last initial for
 
 | Name | Who they are | Notes |
 | --- | --- | --- |
-| Danielle | Operations consultant helping with the pilot | Set up this agent |
+| Danielle | Consultant, ÉLEVÉ Business Partners, running the pilot | Set up this agent |

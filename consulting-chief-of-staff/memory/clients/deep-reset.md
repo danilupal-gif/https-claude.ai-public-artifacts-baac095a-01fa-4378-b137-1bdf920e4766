@@ -3,7 +3,7 @@
 - **Contact:** Keon (owner). Personal friend.
 - **Engagement:** Free pilot. Customer Operations Setup scope.
 - **Dates:** Nov 9 – Dec 18, 2026. Review on Dec 18.
-- **Client plan (shared with Keon):** https://claude.ai/artifact/H1fo7zJzKfLmLFYt8hD5Fn
+- **Client plan (shared with Keon): Dreamworks365 The Deep Reset Operational Plan:** https://claude.ai/artifact/H1fo7zJzKfLmLFYt8hD5Fn
 - **Internal playbook (never share):** https://claude.ai/artifact/PhWLzf9CPu7DKat9J57Md2
 - **Case study permission:** not yet. Ask after results are in.
 - **Testimonial:** not yet.
