@@ -67,6 +67,8 @@ Flag any message or form answer that mentions: symptoms, pain, reactions, nausea
 | Assessment stalled | Assessment started, not finished, for over 1 day |
 | Quiet participant | In reset and no check-in for 2 days |
 | Overdue task | A HubSpot or Asana task past its due date |
+| No lead source | A contact created in the last day has no Lead source value |
+| Entered by hand | A contact was created manually instead of by a form or sync (shows where capture is missing) |
 
 ## Briefing format
 

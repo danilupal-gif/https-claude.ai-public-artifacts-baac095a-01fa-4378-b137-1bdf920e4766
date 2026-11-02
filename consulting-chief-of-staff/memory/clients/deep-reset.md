@@ -13,7 +13,7 @@
 | Due | Milestone | Status |
 | --- | --- | --- |
 | Nov 13 | Access shared, costs filled in, baseline recorded, drop-off point found | Not started |
-| Nov 27 | Website fixes, payment-to-onboarding flow, test purchase, package profitability | Not started |
+| Nov 27 | Website fixes, automatic lead capture from every channel, payment-to-onboarding flow, test purchase, package profitability | Not started |
 | Dec 11 | Follow-ups and check-ins running, one view and morning briefing ready | Not started |
 | Dec 18 | Small-group test done, owner's guides delivered, pilot review | Not started |
 
@@ -23,6 +23,7 @@
 - Cost per package
 - Approval of welcome, waiver and reminder messages
 - Approval of customer care rules
+- List of lead channels and upcoming events or speaking dates
 
 ## Notes
 
