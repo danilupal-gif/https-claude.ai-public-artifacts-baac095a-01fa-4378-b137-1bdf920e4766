@@ -1,12 +1,19 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { DeadlineStrip } from '@/components/portal/deadline-strip'
+import { DownloadPdfButton } from '@/components/portal/download-pdf-button'
+import { PlanFrame } from '@/components/portal/plan-frame'
 import { SignOutButton } from '@/components/portal/sign-out-button'
+import { WelcomeDialog } from '@/components/portal/welcome-dialog'
 import { Wordmark } from '@/components/site/wordmark'
-import { clients, isClientSlug, requireClientViewer } from '@/lib/portal'
+import { getClient, readMeta } from '@/lib/clients'
+import { formatDue } from '@/lib/plan-items'
+import { getClientDeadlines } from '@/lib/plan-status'
+import { requireClientViewer } from '@/lib/portal'
 
 export async function generateMetadata({ params }: { params: Promise<{ client: string }> }): Promise<Metadata> {
   const { client } = await params
-  return { title: isClientSlug(client) ? clients[client].name : 'Client Portal' }
+  return { title: (await getClient(client))?.name ?? 'Client Portal' }
 }
 
 export default async function ClientPlan({
@@ -17,11 +24,23 @@ export default async function ClientPlan({
   searchParams: Promise<{ view?: string }>
 }) {
   const { client: slug } = await params
-  const viewer = await requireClientViewer(slug)
+  const { viewer, client } = await requireClientViewer(slug)
   const isAdmin = viewer.role === 'admin'
   const view = isAdmin && (await searchParams).view !== 'client' ? 'internal' : 'client'
-  const client = clients[slug as keyof typeof clients]
   const title = view === 'internal' ? `${client.name} · Internal playbook` : `${client.name} · Operational plan`
+
+  const [deadlines, welcome, seen] = await Promise.all([
+    view === 'client' ? getClientDeadlines(slug) : null,
+    isAdmin ? null : readMeta<{ text?: string; from?: string }>(slug, 'welcome', 'note'),
+    isAdmin ? null : readMeta<{ at: string }>(slug, 'welcome-seen', viewer.userId),
+  ])
+  const showWelcome = Boolean(welcome?.data.text) && (!seen || seen.updatedAt < welcome!.updatedAt)
+  const toDeadline = (i: { id: string; text: string; due: string | null }) => ({
+    id: i.id,
+    text: i.text,
+    due: i.due!,
+    label: formatDue(i.due!),
+  })
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-background">
@@ -50,6 +69,7 @@ export default async function ClientPlan({
           ) : (
             <span className="hidden text-sm text-muted-foreground md:inline">Signed in as {viewer.name}</span>
           )}
+          <DownloadPdfButton />
           {isAdmin ? (
             <Link
               href="/portal/admin"
@@ -61,7 +81,11 @@ export default async function ClientPlan({
           <SignOutButton compact />
         </div>
       </header>
-      <iframe key={view} src={`/portal/${slug}/plan?view=${view}`} title={title} className="w-full flex-1 border-0" />
+      {deadlines ? (
+        <DeadlineStrip overdue={deadlines.overdue.map(toDeadline)} dueSoon={deadlines.dueSoon.map(toDeadline)} />
+      ) : null}
+      <PlanFrame key={view} src={`/portal/${slug}/plan?view=${view}`} title={title} />
+      {showWelcome ? <WelcomeDialog slug={slug} note={welcome!.data.text!} from={welcome!.data.from ?? 'Danielle'} /> : null}
     </div>
   )
 }

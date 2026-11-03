@@ -34,6 +34,7 @@ export function ActivateForm() {
 
   return (
     <form
+      method="post"
       onSubmit={(event) => {
         // Submitting manually keeps typed values when the code doesn't match.
         event.preventDefault()

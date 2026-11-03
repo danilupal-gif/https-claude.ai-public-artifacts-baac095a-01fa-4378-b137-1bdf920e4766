@@ -4,16 +4,10 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
+import { getClient, writeMeta } from '@/lib/clients'
 import { db } from '@/lib/db'
-import { clientItemStatus, clientMessages, portalAccess } from '@/lib/db/schema'
-import { milestoneStatuses, milestones, needStatuses, needs } from '@/lib/plan'
-import {
-  canViewClient,
-  generateInviteCode,
-  getViewer,
-  hashInviteCode,
-  isClientSlug,
-} from '@/lib/portal'
+import { clientDocuments, portalAccess } from '@/lib/db/schema'
+import { canViewClient, generateInviteCode, getViewer, hashInviteCode } from '@/lib/portal'
 
 export type ActionState = { ok: boolean; message?: string; code?: string; email?: string }
 
@@ -59,68 +53,6 @@ export async function activateAccount(_prev: ActionState, formData: FormData): P
   return { ok: true, email }
 }
 
-const itemSchema = z.object({
-  slug: z.string(),
-  key: z.string(),
-  status: z.string(),
-})
-
-export async function updateItemStatus(input: z.infer<typeof itemSchema>): Promise<ActionState> {
-  const viewer = await getViewer()
-  if (!viewer) return { ok: false, message: 'Please sign in again.' }
-
-  const { slug, key, status } = itemSchema.parse(input)
-  if (!isClientSlug(slug) || !canViewClient(viewer, slug)) return { ok: false, message: 'Not allowed.' }
-
-  const isMilestone = milestones.some((m) => m.key === key)
-  const isNeed = needs.some((n) => n.key === key)
-  if (isMilestone) {
-    if (viewer.role !== 'admin') return { ok: false, message: 'Only Danielle can update milestones.' }
-    if (!(milestoneStatuses as readonly string[]).includes(status)) return { ok: false, message: 'Invalid status.' }
-  } else if (isNeed) {
-    if (!(needStatuses as readonly string[]).includes(status)) return { ok: false, message: 'Invalid status.' }
-  } else {
-    return { ok: false, message: 'Unknown item.' }
-  }
-
-  await db
-    .insert(clientItemStatus)
-    .values({ clientSlug: slug, itemKey: key, status, updatedBy: viewer.userId })
-    .onConflictDoUpdate({
-      target: [clientItemStatus.clientSlug, clientItemStatus.itemKey],
-      set: { status, updatedBy: viewer.userId, updatedAt: sql`now()` },
-    })
-
-  revalidatePath(`/portal/${slug}`)
-  return { ok: true }
-}
-
-const messageSchema = z.object({
-  slug: z.string(),
-  body: z.string().trim().min(1, 'Write a message first.').max(2000, 'Keep it under 2,000 characters.'),
-})
-
-export async function postMessage(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const viewer = await getViewer()
-  if (!viewer) return { ok: false, message: 'Please sign in again.' }
-
-  const parsed = messageSchema.safeParse(Object.fromEntries(formData))
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message }
-  const { slug, body } = parsed.data
-  if (!isClientSlug(slug) || !canViewClient(viewer, slug)) return { ok: false, message: 'Not allowed.' }
-
-  await db.insert(clientMessages).values({
-    clientSlug: slug,
-    userId: viewer.userId,
-    authorName: viewer.name,
-    authorRole: viewer.role,
-    body,
-  })
-
-  revalidatePath(`/portal/${slug}`)
-  return { ok: true }
-}
-
 const grantSchema = z.object({
   email: z.string().trim().toLowerCase().email('Please enter a valid email.'),
   clientSlug: z.string(),
@@ -134,7 +66,7 @@ export async function grantAccess(_prev: ActionState, formData: FormData): Promi
   const parsed = grantSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message }
   const { email, clientSlug, role } = parsed.data
-  if (role === 'client' && !isClientSlug(clientSlug)) return { ok: false, message: 'Choose a client.' }
+  if (role === 'client' && !(await getClient(clientSlug))) return { ok: false, message: 'Choose a client.' }
 
   const [existing] = await db
     .select({ activatedAt: portalAccess.activatedAt })
@@ -169,4 +101,125 @@ export async function revokeAccess(email: string): Promise<ActionState> {
   await db.delete(portalAccess).where(sql`lower(${portalAccess.email}) = ${target}`)
   revalidatePath('/portal/admin')
   return { ok: true }
+}
+
+// --- Welcome note ------------------------------------------------------------
+
+const welcomeSchema = z.object({
+  slug: z.string(),
+  note: z.string().trim().max(1500, 'Keep the note under 1,500 characters.'),
+})
+
+export async function saveWelcomeNote(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+  const parsed = welcomeSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message }
+  if (!(await getClient(parsed.data.slug))) return { ok: false, message: 'Unknown client.' }
+
+  await writeMeta(parsed.data.slug, 'welcome', 'note', { text: parsed.data.note, from: viewer.name.split(/\s+/)[0] }, viewer.email)
+  revalidatePath('/portal/admin')
+  revalidatePath(`/portal/${parsed.data.slug}`)
+  return { ok: true, message: parsed.data.note ? 'Saved. It shows the next time they open their plan.' : 'Note removed.' }
+}
+
+export async function dismissWelcome(slug: string): Promise<void> {
+  const viewer = await getViewer()
+  if (!viewer || !canViewClient(viewer, slug) || !(await getClient(slug))) return
+  await writeMeta(slug, 'welcome-seen', viewer.userId, { at: new Date().toISOString() }, viewer.email)
+  revalidatePath(`/portal/${slug}`)
+}
+
+// --- Activity read marker ----------------------------------------------------
+
+export async function markActivityRead(): Promise<void> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return
+  await writeMeta('*', 'activity-seen', viewer.userId, { at: new Date().toISOString() }, viewer.email)
+  revalidatePath('/portal/admin')
+}
+
+// --- Clients and their plan pages -------------------------------------------
+
+const RESERVED_SLUGS = new Set(['admin', 'sign-in', 'activate', 'api', 'plan'])
+const MAX_PAGE_BYTES = 400_000
+
+const clientSchema = z.object({
+  name: z.string().trim().min(2, 'Enter the business name.').max(80),
+  contact: z.string().trim().min(1, 'Enter the client’s first name.').max(40),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers and dashes only.')
+    .min(3, 'Use at least 3 characters.')
+    .max(40)
+    .refine((s) => !RESERVED_SLUGS.has(s), 'That address is reserved. Choose another.'),
+})
+
+async function readPage(value: FormDataEntryValue | null, label: string, required: boolean) {
+  if (!(value instanceof File) || value.size === 0) {
+    return required ? { error: `Upload the ${label}.` } : { html: null }
+  }
+  if (value.size > MAX_PAGE_BYTES) return { error: `The ${label} is too large (400 KB max).` }
+  const html = await value.text()
+  if (!/<(?:style|section|body|div)[\s>]/i.test(html)) return { error: `The ${label} doesn’t look like an HTML page.` }
+  return { html }
+}
+
+async function savePage(slug: string, kind: 'client' | 'internal', html: string) {
+  const title = html.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim() || (kind === 'client' ? 'Client plan' : 'Internal playbook')
+  await db
+    .insert(clientDocuments)
+    .values({ clientSlug: slug, kind, title, html })
+    .onConflictDoUpdate({
+      target: [clientDocuments.clientSlug, clientDocuments.kind],
+      set: { title, html, updatedAt: new Date() },
+    })
+}
+
+export async function createClient(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+
+  const parsed = clientSchema.safeParse({
+    name: formData.get('name'),
+    contact: formData.get('contact'),
+    slug: formData.get('slug'),
+  })
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message }
+  const { name, contact, slug } = parsed.data
+  if (await getClient(slug)) return { ok: false, message: 'A client already uses that address.' }
+
+  const clientPage = await readPage(formData.get('clientPlan'), 'client plan', true)
+  if ('error' in clientPage) return { ok: false, message: clientPage.error }
+  const internalPage = await readPage(formData.get('internalPlan'), 'internal playbook', true)
+  if ('error' in internalPage) return { ok: false, message: internalPage.error }
+
+  await savePage(slug, 'client', clientPage.html!)
+  await savePage(slug, 'internal', internalPage.html!)
+  await writeMeta(slug, 'profile', 'profile', { name, contact }, viewer.email)
+
+  revalidatePath('/portal/admin')
+  return { ok: true, message: `${name} is ready at /portal/${slug}. Invite ${contact} below.` }
+}
+
+export async function updateClientPages(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+  const slug = String(formData.get('slug') ?? '')
+  if (!(await getClient(slug))) return { ok: false, message: 'Unknown client.' }
+
+  const clientPage = await readPage(formData.get('clientPlan'), 'client plan', false)
+  if ('error' in clientPage) return { ok: false, message: clientPage.error }
+  const internalPage = await readPage(formData.get('internalPlan'), 'internal playbook', false)
+  if ('error' in internalPage) return { ok: false, message: internalPage.error }
+  if (!clientPage.html && !internalPage.html) return { ok: false, message: 'Choose at least one page to upload.' }
+
+  if (clientPage.html) await savePage(slug, 'client', clientPage.html)
+  if (internalPage.html) await savePage(slug, 'internal', internalPage.html)
+
+  revalidatePath('/portal/admin')
+  revalidatePath(`/portal/${slug}`)
+  return { ok: true, message: 'Updated. Ticks and notes are kept for tasks that still exist.' }
 }

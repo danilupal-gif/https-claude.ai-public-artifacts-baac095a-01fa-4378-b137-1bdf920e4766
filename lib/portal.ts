@@ -6,18 +6,8 @@ import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { getClient } from '@/lib/clients'
 import { portalAccess } from '@/lib/db/schema'
-import { plan } from '@/lib/plan'
-
-export const clients = {
-  dreamworks365: { slug: plan.slug, name: plan.business, contact: plan.client },
-} as const
-
-export type ClientSlug = keyof typeof clients
-
-export function isClientSlug(value: string): value is ClientSlug {
-  return Object.prototype.hasOwnProperty.call(clients, value)
-}
 
 export type PortalViewer = {
   userId: string
@@ -55,8 +45,17 @@ export function canViewClient(viewer: PortalViewer, slug: string) {
 export async function requireClientViewer(slug: string) {
   const viewer = await getViewer()
   if (!viewer) redirect('/portal/sign-in')
-  if (!isClientSlug(slug) || !canViewClient(viewer, slug)) notFound()
-  return viewer
+  const client = canViewClient(viewer, slug) ? await getClient(slug) : null
+  if (!client) notFound()
+  return { viewer, client }
+}
+
+/** For route handlers: the signed-in viewer and the client they're allowed to see, or null. */
+export async function getClientAccess(slug: string) {
+  const viewer = await getViewer()
+  if (!viewer) return { viewer: null, client: null }
+  const client = canViewClient(viewer, slug) ? await getClient(slug) : null
+  return { viewer, client }
 }
 
 export async function requireAdmin() {

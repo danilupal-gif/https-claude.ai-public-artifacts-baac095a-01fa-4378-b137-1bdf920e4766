@@ -3,11 +3,16 @@ import { type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { clientDocuments } from '@/lib/db/schema'
 import { canUseSpace, isPlanSpace } from '@/lib/plan-docs'
+import { firstName } from '@/lib/plan-status'
 import { planShim } from '@/lib/plan-shim'
 import { planFontsLink, planThemeStyle } from '@/lib/plan-theme'
-import { canViewClient, getViewer, isClientSlug } from '@/lib/portal'
+import { getClientAccess } from '@/lib/portal'
 
-const CLAUDE_CLIENT_PLAN = 'https://claude.ai/artifact/H1fo7zJzKfLmLFYt8hD5Fn'
+/** Plans drafted as Claude artifacts link to each other by artifact URL; point those at the portal. */
+const ARTIFACT_URL = /https:\/\/claude\.ai\/(?:public\/)?artifacts?\/[A-Za-z0-9_-]+/g
+const ARTIFACT_TEXT = /(?<![/\w])claude\.ai\/(?:public\/)?artifacts?\/[A-Za-z0-9_-]+/g
+const ORIGINAL_FONTS =
+  /<link rel="preconnect" href="https:\/\/fonts\.googleapis\.com">\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]*">/
 
 function notFound() {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } })
@@ -15,13 +20,11 @@ function notFound() {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ client: string }> }) {
   const { client: slug } = await params
-  const viewer = await getViewer()
+  const { viewer, client } = await getClientAccess(slug)
   if (!viewer) return Response.redirect(new URL('/portal/sign-in', request.url), 303)
 
   const view = request.nextUrl.searchParams.get('view') ?? 'client'
-  if (!isClientSlug(slug) || !canViewClient(viewer, slug) || !isPlanSpace(view) || !canUseSpace(viewer, view)) {
-    return notFound()
-  }
+  if (!client || !isPlanSpace(view) || !canUseSpace(viewer, view)) return notFound()
 
   const [doc] = await db
     .select({ html: clientDocuments.html })
@@ -30,12 +33,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .limit(1)
   if (!doc) return notFound()
 
+  const clientLink = `/portal/${slug}?view=client`
   const body = doc.html
-    .replaceAll(CLAUDE_CLIENT_PLAN, `/portal/${slug}?view=client`)
-    .replaceAll(CLAUDE_CLIENT_PLAN.replace('https://', ''), 'open it in the client portal')
-    .replace(/<link rel="preconnect" href="https:\/\/fonts\.googleapis\.com">\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2\?family=Gloock[^"]*">/, '')
+    .replace(ARTIFACT_URL, clientLink)
+    .replace(ARTIFACT_TEXT, 'open it in the client portal')
+    .replace(ORIGINAL_FONTS, '')
     .replace('</style>', `</style>${planThemeStyle}`)
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">${planFontsLink}<style>body{margin:0}</style>${planShim({ slug, space: view })}${body}`
+  const shim = planShim({ slug, space: view, viewerName: firstName(viewer.name) })
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">${planFontsLink}<style>body{margin:0}</style>${shim}${body}`
 
   return new Response(html, {
     headers: {

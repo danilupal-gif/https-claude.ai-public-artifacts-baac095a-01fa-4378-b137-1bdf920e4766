@@ -1,13 +1,16 @@
-import Link from 'next/link'
 import { asc, desc } from 'drizzle-orm'
-import { ArrowRight } from 'lucide-react'
 import { AccessList } from '@/components/admin/access-list'
+import { ActivityFeed } from '@/components/admin/activity-feed'
+import { AddClientForm } from '@/components/admin/add-client-form'
+import { ClientCard } from '@/components/admin/client-card'
 import { GrantAccessForm } from '@/components/admin/grant-access-form'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { PanelHeading } from '@/components/dashboard/panel-heading'
 import { db } from '@/lib/db'
 import { portalAccess, projectInquiries } from '@/lib/db/schema'
-import { clients, requireAdmin } from '@/lib/portal'
+import { getClients, readMeta } from '@/lib/clients'
+import { getClientActivity, getPlanStatus } from '@/lib/plan-status'
+import { requireAdmin } from '@/lib/portal'
 
 export const metadata = { title: 'Admin' }
 
@@ -42,7 +45,14 @@ export default async function AdminPage() {
       .limit(20),
   ])
 
-  const clientList = Object.values(clients)
+  const clientList = await getClients()
+  const [statuses, notes, activity, seen] = await Promise.all([
+    Promise.all(clientList.map((c) => getPlanStatus(c.slug))),
+    Promise.all(clientList.map((c) => readMeta<{ text?: string }>(c.slug, 'welcome', 'note'))),
+    getClientActivity(),
+    readMeta<{ at: string }>('*', 'activity-seen', viewer.userId),
+  ])
+  const clientNames = Object.fromEntries(clientList.map((c) => [c.slug, c.name]))
 
   return (
     <div className="min-h-svh">
@@ -55,22 +65,37 @@ export default async function AdminPage() {
 
         <section aria-labelledby="clients-title" className="flex flex-col gap-6">
           <PanelHeading id="clients-title" eyebrow="Active" title="Client dashboards" />
-          <ul className="grid gap-4 md:grid-cols-2">
-            {clientList.map((c) => (
+          <ul className="grid items-start gap-4 md:grid-cols-2">
+            {clientList.map((c, i) => (
               <li key={c.slug}>
-                <Link
-                  href={`/portal/${c.slug}`}
-                  className="group flex items-center justify-between gap-4 border border-border bg-card p-6 transition-colors hover:bg-surface"
-                >
-                  <span className="flex flex-col gap-1">
-                    <span className="font-serif text-2xl">{c.name}</span>
-                    <span className="text-sm text-muted-foreground">Contact: {c.contact}</span>
-                  </span>
-                  <ArrowRight className="size-5 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </Link>
+                <ClientCard client={c} status={statuses[i]} welcomeNote={notes[i]?.data.text ?? ''} />
               </li>
             ))}
           </ul>
+        </section>
+
+        <section aria-labelledby="activity-title" className="flex flex-col gap-6">
+          <PanelHeading
+            id="activity-title"
+            eyebrow="Alerts"
+            title="Client activity"
+            intro="What your clients changed in their plans: ticks, recap confirmations, notes and starting numbers. Latest change per item, newest first."
+          />
+          <ActivityFeed entries={activity} seenAt={seen ? new Date(seen.data.at) : null} clientNames={clientNames} />
+        </section>
+
+        <section aria-labelledby="new-client-title" className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <PanelHeading
+              id="new-client-title"
+              eyebrow="Next client"
+              title="Add a client"
+              intro="Upload their client plan and your internal playbook as HTML pages. They get their own portal address, checklist and reminders; then invite them below."
+            />
+          </div>
+          <div className="lg:col-span-7">
+            <AddClientForm />
+          </div>
         </section>
 
         <section aria-labelledby="access-title" className="grid gap-10 lg:grid-cols-12">
@@ -89,7 +114,7 @@ export default async function AdminPage() {
               rows={access.map((a) => ({
                 email: a.email,
                 role: a.role,
-                client: a.role === 'admin' ? 'All clients' : (clients[a.clientSlug as keyof typeof clients]?.name ?? a.clientSlug),
+                client: a.role === 'admin' ? 'All clients' : (clientNames[a.clientSlug] ?? a.clientSlug),
                 activated: Boolean(a.activatedAt),
               }))}
             />

@@ -30,7 +30,7 @@ export function SignInForm({ defaultEmail }: { defaultEmail?: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <label htmlFor="email" className={fieldLabel}>
           Email

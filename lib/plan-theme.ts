@@ -40,4 +40,18 @@ nav.toc a:hover{color:var(--leaf)}
 pre.tree{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 a{color:var(--leaf)}
 ::selection{background:rgb(201 170 120 / .35)}
+@media print{
+  :root:root:root:root{
+    color-scheme:light;
+    --paper:#ffffff; --surface:#ffffff; --ink:#111114; --muted:#55525a; --line:#d9d2c5;
+    --leaf:#8a6a3b; --leaf-soft:#f4eee4; --gold:#6f5c48; --gold-soft:#f1ece6; --alert:#a34a3a; --alert-soft:#f8ebe8;
+  }
+  @page{margin:14mm}
+  body::before,nav.toc,.filters,.chipbtn,.btn,#confSave,.sync,[data-conf]{display:none !important}
+  header.hero{background:none}
+  section{break-inside:auto;padding-block:18px !important}
+  .card,.phase,.progress-card,.tbl,.brief,details,.stage-btn{break-inside:avoid;box-shadow:none}
+  a{color:inherit;text-decoration:none}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>`
