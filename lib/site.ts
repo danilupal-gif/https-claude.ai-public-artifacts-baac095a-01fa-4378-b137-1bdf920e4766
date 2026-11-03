@@ -161,6 +161,7 @@ export const serviceOptions = [
   'Website Creation',
   'Digital Menu Design & Management',
   'Workforce Scheduling & Automation',
+  'Food & Beverage Ordering Optimization',
   'Inventory Optimization & Waste Reduction',
   'Not sure yet',
 ] as const

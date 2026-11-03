@@ -4,6 +4,7 @@ import { ActivityFeed } from '@/components/admin/activity-feed'
 import { AddClientForm } from '@/components/admin/add-client-form'
 import { ClientCard } from '@/components/admin/client-card'
 import { GrantAccessForm } from '@/components/admin/grant-access-form'
+import { SpotlightForm } from '@/components/admin/spotlight-form'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { PanelHeading } from '@/components/dashboard/panel-heading'
 import { db } from '@/lib/db'
@@ -14,6 +15,7 @@ import { getClientSettings } from '@/lib/client-settings'
 import { getClientReplies } from '@/lib/plan-requests'
 import { getClientActivity, getPlanStatus } from '@/lib/plan-status'
 import { requireAdmin } from '@/lib/portal'
+import { beforeMenuSrc, getSpotlight } from '@/lib/spotlight'
 
 export const metadata = { title: 'Admin' }
 
@@ -49,7 +51,7 @@ export default async function AdminPage() {
   ])
 
   const clientList = await getClients()
-  const [statuses, replies, settings, caseStudies, notes, activity, seen] = await Promise.all([
+  const [statuses, replies, settings, caseStudies, notes, activity, seen, spotlight] = await Promise.all([
     Promise.all(clientList.map((c) => getPlanStatus(c.slug))),
     Promise.all(clientList.map((c) => getClientReplies(c.slug))),
     Promise.all(clientList.map((c) => getClientSettings(c.slug))),
@@ -57,6 +59,7 @@ export default async function AdminPage() {
     Promise.all(clientList.map((c) => readMeta<{ text?: string }>(c.slug, 'welcome', 'note'))),
     getClientActivity(),
     readMeta<{ at: string }>('*', 'activity-seen', viewer.userId),
+    getSpotlight(),
   ])
   const clientNames = Object.fromEntries(clientList.map((c) => [c.slug, c.name]))
 
@@ -95,6 +98,29 @@ export default async function AdminPage() {
             intro="What your clients changed in their plans: ticks, recap confirmations, notes and starting numbers. Latest change per item, newest first."
           />
           <ActivityFeed entries={activity} seenAt={seen ? new Date(seen.data.at) : null} clientNames={clientNames} />
+        </section>
+
+        <section aria-labelledby="spotlight-admin-title" className="grid gap-10 lg:grid-cols-12">
+          <div className="flex flex-col gap-4 lg:col-span-5">
+            <PanelHeading
+              id="spotlight-admin-title"
+              eyebrow="Website · Results page"
+              title="Vibes Lounge spotlight"
+              intro="Add early numbers, Devin's quote and a photo of the old menu. Each one appears on the Results page only once it's filled in."
+            />
+            <a href="/case-studies" className="text-sm text-primary underline-offset-4 hover:underline">
+              View the Results page
+            </a>
+          </div>
+          <div className="lg:col-span-7">
+            <SpotlightForm
+              quote={spotlight.quote}
+              quoteBy={spotlight.quoteBy}
+              metrics={spotlight.metrics}
+              baseline={spotlight.baseline}
+              beforeMenuSrc={beforeMenuSrc(spotlight)}
+            />
+          </div>
         </section>
 
         <section aria-labelledby="new-client-title" className="grid gap-10 lg:grid-cols-12">
