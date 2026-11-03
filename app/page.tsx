@@ -1,32 +1,31 @@
-import { Hero } from '@/components/hero'
-import { Journey } from '@/components/journey'
-import { Measures } from '@/components/measures'
-import { Needs } from '@/components/needs'
-import { Priorities } from '@/components/priorities'
-import { Review } from '@/components/review'
-import { SiteHeader } from '@/components/site-header'
-import { Timeline } from '@/components/timeline'
-import { plan } from '@/lib/plan'
+import { Approach } from '@/components/site/approach'
+import { Contact } from '@/components/site/contact'
+import { Fit } from '@/components/site/fit'
+import { Hero } from '@/components/site/hero'
+import { PortalCallout } from '@/components/site/portal-callout'
+import { Process } from '@/components/site/process'
+import { Services } from '@/components/site/services'
+import { SiteFooter } from '@/components/site/site-footer'
+import { SiteHeader } from '@/components/site/site-header'
+import { serviceOptions } from '@/lib/site'
 
-export default function Page() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ service?: string }> }) {
+  const { service } = await searchParams
+  const defaultService = (serviceOptions as readonly string[]).includes(service ?? '') ? service : undefined
+
   return (
     <>
       <SiteHeader />
       <main>
         <Hero />
-        <Priorities />
-        <Timeline />
-        <Journey />
-        <Measures />
-        <Needs />
-        <Review />
+        <Approach />
+        <Services />
+        <Process />
+        <Fit />
+        <PortalCallout />
+        <Contact defaultService={defaultService} />
       </main>
-      <footer className="mx-auto flex max-w-5xl flex-col gap-1 px-5 py-8 text-sm text-muted-foreground md:flex-row md:justify-between">
-        <span>
-          Prepared by {plan.firm} for {plan.business}
-        </span>
-        <span>Draft · {plan.preparedOn} · Confidential</span>
-      </footer>
+      <SiteFooter />
     </>
   )
 }

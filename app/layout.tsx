@@ -1,28 +1,33 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Geist } from 'next/font/google'
+import { Cormorant_Garamond, Manrope } from 'next/font/google'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
-const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' })
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' })
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
+})
 
 export const metadata: Metadata = {
-  title: 'The Deep Reset · Operational Plan',
+  title: {
+    default: 'ÉLEVÉ Business Partners · Strategy, Operations & Automation',
+    template: '%s · ÉLEVÉ Business Partners',
+  },
   description:
-    'Customer Operations Setup pilot for Dreamworks365 The Deep Reset, prepared by ÉLEVÉ Business Partners. Nov 9 – Dec 18, 2026.',
-  robots: { index: false, follow: false },
-  manifest: '/manifest.json',
+    'ÉLEVÉ Business Partners helps business owners simplify their operations, strengthen the customer experience, and build the capacity to scale.',
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  themeColor: '#1e3b2c',
+  themeColor: '#111114',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${fraunces.variable} bg-background`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${manrope.variable} ${cormorant.variable} bg-background`}>
       <body className="font-sans text-foreground">{children}</body>
     </html>
   )
