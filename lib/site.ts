@@ -157,6 +157,10 @@ export const serviceOptions = [
   'Customer Operations Setup',
   'Systems Support',
   'Growth Services',
+  'Website Creation',
+  'Digital Menu Design & Management',
+  'Workforce Scheduling & Automation',
+  'Inventory Optimization & Waste Reduction',
   'Not sure yet',
 ] as const
 
