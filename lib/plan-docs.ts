@@ -7,8 +7,8 @@ export type PlanSpace = (typeof planSpaces)[number]
 
 /** Collections each plan page is allowed to save. Anything else is rejected. */
 export const allowedCollections: Record<PlanSpace, readonly string[]> = {
-  client: ['progress', 'discovery', 'baseline'],
-  internal: ['progress', 'hours'],
+  client: ['progress', 'discovery', 'baseline', 'responses'],
+  internal: ['progress', 'hours', 'inbox'],
 }
 
 export function isPlanSpace(value: unknown): value is PlanSpace {

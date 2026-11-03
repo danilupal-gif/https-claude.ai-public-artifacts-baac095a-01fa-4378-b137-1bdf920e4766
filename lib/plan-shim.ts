@@ -6,11 +6,13 @@ import 'server-only'
  * so the pages run unchanged and their ticks, notes and hours are shared between client and consultant.
  * It also labels ticked items with who ticked them and when, and tells the portal page when something saved.
  */
-export function planShim(config: { slug: string; space: string; viewerName: string }) {
+export function planShim(config: { slug: string; space: string; viewerName: string; replied?: string[]; contact?: string }) {
   const cfg = JSON.stringify({
     url: `/api/portal/${encodeURIComponent(config.slug)}/store`,
     space: config.space,
     me: config.viewerName,
+    replied: config.replied ?? [],
+    contact: config.contact ?? '',
   }).replace(/</g, '\\u003c')
 
   return `<style>
@@ -58,6 +60,15 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
         if(!tag){tag=document.createElement('span');tag.className='v0-upd';label.appendChild(tag)}
         if(tag.textContent!==want)tag.textContent=want;
       });
+      CFG.replied.forEach(function(id){
+        var label=document.querySelector('label[for="task-'+id+'"]');if(!label||label.querySelector('.v0-replied'))return;
+        var tag=document.createElement('span');tag.className='v0-upd v0-replied';tag.textContent=CFG.contact+' replied';label.appendChild(tag);
+      });
+      ((state.responses)||[]).forEach(function(e){
+        var box=document.getElementById('req-'+e.id),card=box&&box.closest('[data-req]');if(!card||dirty[e.id])return;
+        var text=(e.data&&e.data.text)||'';if(box.value!==text)box.value=text;
+        var st=card.querySelector('.v0-req-status');if(text&&st&&!st.dataset.busy){st.className='v0-req-status ok';st.textContent='Sent '+stamp(e).replace(/^[^\\u00b7]*\\u00b7 /,'')}
+      });
       var conf=find('discovery','confirm'),cs=document.getElementById('confStatus');
       if(conf&&cs&&conf.data&&conf.data.status&&cs.textContent.indexOf(' by ')<0)cs.textContent+=' by '+conf.by;
     });
@@ -72,6 +83,35 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
     if(!ready){ready=load();setInterval(function(){if(!document.hidden)load().catch(function(){})},15000);}
     return Promise.resolve(db);
   }};
+  var dirty={};
+  document.addEventListener('input',function(e){
+    var t=e.target;if(!t.id||t.id.indexOf('req-')!==0)return;
+    var id=t.id.slice(4);dirty[id]=true;
+    var st=t.closest('[data-req]').querySelector('.v0-req-status');st.className='v0-req-status';st.textContent='Not sent yet';
+  });
+  function ensureDb(){return window.claude.use('db')}
+  document.addEventListener('click',function(e){
+    var send=e.target.closest&&e.target.closest('[data-send]');
+    if(send){
+      var id=send.getAttribute('data-send'),box=document.getElementById('req-'+id),st=send.parentNode.querySelector('.v0-req-status'),text=box.value.trim();
+      if(!text){st.className='v0-req-status err';st.textContent='Write something first.';box.focus();return}
+      send.disabled=true;st.dataset.busy='1';st.className='v0-req-status';st.textContent='Sending\\u2026';
+      ensureDb().then(function(){return ready}).then(function(){return put('responses',id,{text:text,at:new Date().toISOString()})}).then(function(){
+        dirty[id]=false;delete st.dataset.busy;st.className='v0-req-status ok';st.textContent='Sent. '+send.textContent.replace(/^Send to /,'')+' has it.';
+      },function(){delete st.dataset.busy;st.className='v0-req-status err';st.textContent='Couldn\\u2019t send. Check your connection and try again.'}).then(function(){send.disabled=false});
+      return;
+    }
+    var rev=e.target.closest&&e.target.closest('[data-review]');
+    if(rev){
+      var rid=rev.getAttribute('data-review'),card=rev.closest('[data-reply]'),rst=rev.parentNode.querySelector('.v0-req-status');
+      rev.disabled=true;
+      ensureDb().then(function(){return ready}).then(function(){return put('inbox',rid,{reviewedAt:new Date().toISOString()})}).then(function(){
+        card.classList.add('is-reviewed');var pill=card.querySelector('[data-reply-pill]');if(pill){pill.textContent='Reviewed';pill.classList.remove('new')}rev.parentNode.remove();
+        var left=document.querySelectorAll('[data-reply] [data-review]').length,eb=document.querySelector('#from-client .eyebrow');if(eb)eb.textContent='Inbox \\u00b7 '+(left?left+' to review':'all reviewed');
+      },function(){rev.disabled=false;rst.className='v0-req-status err';rst.textContent='Couldn\\u2019t save. Try again.'});
+      return;
+    }
+  });
   document.addEventListener('click',function(e){
     var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;
     var href=a.getAttribute('href')||'';if(href.charAt(0)==='#')return;

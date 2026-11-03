@@ -21,6 +21,23 @@ export function readPlanItems(html: string): PlanItem[] {
   return items
 }
 
+export type PlanPhase = { name: string; when: string; items: PlanItem[] }
+
+/** Phases are written as {n:'Name',w:'Dates',t:[...tasks]}. */
+export function readPlanPhases(html: string): PlanPhase[] {
+  const items = new Map(readPlanItems(html).map((i) => [i.id, i]))
+  const phases: PlanPhase[] = []
+  for (const m of html.matchAll(/\{n:'((?:[^'\\]|\\.)*)',w:'((?:[^'\\]|\\.)*)',t:\[([\s\S]*?)\]\]\}/g)) {
+    const ids = [...`${m[3]}]`.matchAll(/\['([A-Za-z0-9_-]{1,40})','[kdb]'/g)].map((x) => x[1])
+    phases.push({
+      name: cleanText(m[1]),
+      when: cleanText(m[2]),
+      items: ids.map((id) => items.get(id)).filter((i): i is PlanItem => Boolean(i)),
+    })
+  }
+  return phases
+}
+
 function cleanText(raw: string) {
   return raw
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))

@@ -3,6 +3,16 @@ import { type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { clientDocuments } from '@/lib/db/schema'
 import { canUseSpace, isPlanSpace } from '@/lib/plan-docs'
+import {
+  INBOX_SECTION_ID,
+  REQUESTS_SECTION_ID,
+  clientRequestsSection,
+  consultantName,
+  getClientReplies,
+  injectSection,
+  internalInboxSection,
+  requestItems,
+} from '@/lib/plan-requests'
 import { firstName } from '@/lib/plan-status'
 import { planShim } from '@/lib/plan-shim'
 import { planFontsLink, planThemeStyle } from '@/lib/plan-theme'
@@ -34,12 +44,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!doc) return notFound()
 
   const clientLink = `/portal/${slug}?view=client`
-  const body = doc.html
+  let page = doc.html
+  let replied: string[] = []
+  if (view === 'client') {
+    const section = clientRequestsSection(requestItems(doc.html), await consultantName())
+    page = injectSection(page, section, { id: REQUESTS_SECTION_ID, label: 'Your input', afterId: 'thisweek', beforeId: 'timeline' })
+  } else {
+    const replies = await getClientReplies(slug)
+    replied = replies.map((r) => r.item.id)
+    page = injectSection(page, internalInboxSection(replies, client.contact), {
+      id: INBOX_SECTION_ID,
+      label: `From ${client.contact}`,
+      beforeId: 'heard',
+    })
+  }
+  const body = page
     .replace(ARTIFACT_URL, clientLink)
     .replace(ARTIFACT_TEXT, 'open it in the client portal')
     .replace(ORIGINAL_FONTS, '')
     .replace('</style>', `</style>${planThemeStyle}`)
-  const shim = planShim({ slug, space: view, viewerName: firstName(viewer.name) })
+  const shim = planShim({ slug, space: view, viewerName: firstName(viewer.name), replied, contact: client.contact })
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">${planFontsLink}<style>body{margin:0}</style>${shim}${body}`
 
   return new Response(html, {

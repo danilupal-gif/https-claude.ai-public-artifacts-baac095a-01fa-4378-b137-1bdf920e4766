@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, after, type NextRequest } from 'next/server'
+import { notifyClientReply } from '@/lib/notify'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { clientStore, user } from '@/lib/db/schema'
@@ -74,6 +75,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       target: [clientStore.clientSlug, clientStore.space, clientStore.collection, clientStore.docId],
       set: { data, updatedBy: result.viewer.email, updatedAt: sql`now()` },
     })
+
+  const text = typeof data.text === 'string' ? data.text.trim() : ''
+  if (result.space === 'client' && collection === 'responses' && result.viewer.role === 'client' && text) {
+    const origin = request.nextUrl.origin
+    const viewer = result.viewer
+    after(() =>
+      notifyClientReply({ slug, itemId: id, text, fromName: firstName(viewer.name), fromEmail: viewer.email, origin }).catch((error) =>
+        console.error('Reply notification failed', error),
+      ),
+    )
+  }
 
   return NextResponse.json({ ok: true }, { headers: noStore })
 }

@@ -125,6 +125,11 @@ export async function getClientActivity(limit = 25): Promise<ActivityEntry[]> {
       const notes = typeof data.notes === 'string' && data.notes.trim() ? data.notes.trim() : undefined
       return { key, clientSlug: r.clientSlug, who, at: r.at, summary: status, detail: notes }
     }
+    if (r.collection === 'responses') {
+      const task = itemText.get(r.clientSlug)?.get(r.docId) ?? r.docId
+      const text = typeof data.text === 'string' ? data.text.trim() : ''
+      return { key, clientSlug: r.clientSlug, who, at: r.at, summary: `Sent you information: ${task}`, detail: text.length > 280 ? `${text.slice(0, 280)}…` : text }
+    }
     if (r.collection === 'baseline') {
       const values = Object.entries(data).filter(([, v]) => typeof v === 'string' && v.trim())
       return {

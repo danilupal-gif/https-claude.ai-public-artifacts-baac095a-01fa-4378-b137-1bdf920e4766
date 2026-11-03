@@ -26,7 +26,17 @@ function Meter({ label, done, total }: { label: string; done: number; total: num
   )
 }
 
-export function ClientCard({ client, status, welcomeNote }: { client: Client; status: ClientPlanStatus; welcomeNote: string }) {
+export function ClientCard({
+  client,
+  status,
+  toReview,
+  welcomeNote,
+}: {
+  client: Client
+  status: ClientPlanStatus
+  toReview: number
+  welcomeNote: string
+}) {
   return (
     <article className="flex flex-col border border-border bg-card">
       <Link
@@ -49,6 +59,18 @@ export function ClientCard({ client, status, welcomeNote }: { client: Client; st
         ) : (
           <p className="text-sm text-muted-foreground">No plan pages uploaded yet.</p>
         )}
+
+        {toReview > 0 ? (
+          <Link
+            href={`/portal/${client.slug}`}
+            className="flex items-center justify-between gap-3 border border-primary/50 px-4 py-3 text-sm transition-colors hover:bg-surface"
+          >
+            <span>
+              {client.contact} sent you {toReview === 1 ? 'something' : `${toReview} things`} to review
+            </span>
+            <span className="text-xs uppercase tracking-[0.2em] text-primary">Open inbox</span>
+          </Link>
+        ) : null}
 
         {status.overdue.length > 0 ? (
           <div className="flex flex-col gap-2">

@@ -9,6 +9,7 @@ import { PanelHeading } from '@/components/dashboard/panel-heading'
 import { db } from '@/lib/db'
 import { portalAccess, projectInquiries } from '@/lib/db/schema'
 import { getClients, readMeta } from '@/lib/clients'
+import { getClientReplies } from '@/lib/plan-requests'
 import { getClientActivity, getPlanStatus } from '@/lib/plan-status'
 import { requireAdmin } from '@/lib/portal'
 
@@ -46,8 +47,9 @@ export default async function AdminPage() {
   ])
 
   const clientList = await getClients()
-  const [statuses, notes, activity, seen] = await Promise.all([
+  const [statuses, replies, notes, activity, seen] = await Promise.all([
     Promise.all(clientList.map((c) => getPlanStatus(c.slug))),
+    Promise.all(clientList.map((c) => getClientReplies(c.slug))),
     Promise.all(clientList.map((c) => readMeta<{ text?: string }>(c.slug, 'welcome', 'note'))),
     getClientActivity(),
     readMeta<{ at: string }>('*', 'activity-seen', viewer.userId),
@@ -68,7 +70,12 @@ export default async function AdminPage() {
           <ul className="grid items-start gap-4 md:grid-cols-2">
             {clientList.map((c, i) => (
               <li key={c.slug}>
-                <ClientCard client={c} status={statuses[i]} welcomeNote={notes[i]?.data.text ?? ''} />
+                <ClientCard
+                  client={c}
+                  status={statuses[i]}
+                  toReview={replies[i].filter((r) => !r.reviewed).length}
+                  welcomeNote={notes[i]?.data.text ?? ''}
+                />
               </li>
             ))}
           </ul>

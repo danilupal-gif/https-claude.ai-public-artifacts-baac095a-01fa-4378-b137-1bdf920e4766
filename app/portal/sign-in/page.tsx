@@ -13,7 +13,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   return (
     <AuthShell
       title="Welcome back."
-      intro="Sign in to see your plan, milestones and messages."
+      intro="Sign in to see your plan, checklist and what’s next."
       footer={
         <>
           First time here?{' '}
