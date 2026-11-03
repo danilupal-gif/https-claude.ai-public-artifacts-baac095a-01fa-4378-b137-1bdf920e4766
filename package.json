@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "better-auth": "^1.7.15",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.66.0",

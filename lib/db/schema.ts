@@ -116,6 +116,19 @@ export const clientStore = pgTable(
   (t) => [primaryKey({ columns: [t.clientSlug, t.space, t.collection, t.docId] })],
 )
 
+/** Files a client attaches to a request in their plan. The bytes live in private Vercel Blob storage. */
+export const clientFiles = pgTable('client_files', {
+  id: text('id').primaryKey(),
+  clientSlug: text('client_slug').notNull(),
+  itemId: text('item_id').notNull(),
+  pathname: text('pathname').notNull(),
+  name: text('name').notNull(),
+  size: integer('size').notNull(),
+  contentType: text('content_type').notNull(),
+  uploadedBy: text('uploaded_by').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 // --- Website inquiries (existing table) ------------------------------------
 
 export const projectInquiries = pgTable('project_inquiries', {

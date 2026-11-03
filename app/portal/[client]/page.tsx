@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { CalendarClock } from 'lucide-react'
 import { DeadlineStrip } from '@/components/portal/deadline-strip'
 import { DownloadPdfButton } from '@/components/portal/download-pdf-button'
 import { PlanFrame } from '@/components/portal/plan-frame'
 import { SignOutButton } from '@/components/portal/sign-out-button'
 import { WelcomeDialog } from '@/components/portal/welcome-dialog'
 import { Wordmark } from '@/components/site/wordmark'
+import { getCaseStudy } from '@/lib/case-studies'
+import { getClientSettings } from '@/lib/client-settings'
 import { getClient, readMeta } from '@/lib/clients'
 import { formatDue } from '@/lib/plan-items'
 import { getClientDeadlines } from '@/lib/plan-status'
@@ -29,7 +32,9 @@ export default async function ClientPlan({
   const view = isAdmin && (await searchParams).view !== 'client' ? 'internal' : 'client'
   const title = view === 'internal' ? `${client.name} · Internal playbook` : `${client.name} · Operational plan`
 
-  const [deadlines, welcome, seen] = await Promise.all([
+  const [settings, study, deadlines, welcome, seen] = await Promise.all([
+    getClientSettings(slug),
+    isAdmin ? null : getCaseStudy(slug),
     view === 'client' ? getClientDeadlines(slug) : null,
     isAdmin ? null : readMeta<{ text?: string; from?: string }>(slug, 'welcome', 'note'),
     isAdmin ? null : readMeta<{ at: string }>(slug, 'welcome-seen', viewer.userId),
@@ -69,6 +74,18 @@ export default async function ClientPlan({
           ) : (
             <span className="hidden text-sm text-muted-foreground md:inline">Signed in as {viewer.name}</span>
           )}
+          {view === 'client' && settings.bookingUrl ? (
+            <a
+              href={settings.bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-primary px-3 py-2 text-xs uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              <CalendarClock className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Book a check-in</span>
+              <span className="sr-only sm:hidden">Book a check-in</span>
+            </a>
+          ) : null}
           <DownloadPdfButton />
           {isAdmin ? (
             <Link
@@ -81,6 +98,15 @@ export default async function ClientPlan({
           <SignOutButton compact />
         </div>
       </header>
+      {study?.status === 'awaiting' && !isAdmin ? (
+        <Link
+          href={`/portal/${slug}/case-study`}
+          className="flex shrink-0 items-center justify-between gap-4 border-b border-primary/40 bg-surface px-4 py-3 text-sm transition-colors hover:bg-card md:px-6"
+        >
+          <span className="text-pretty">{welcome?.data.from ?? 'Danielle'} would like to share the story of your pilot. Nothing goes public without your yes.</span>
+          <span className="shrink-0 text-xs uppercase tracking-[0.2em] text-primary">Review it</span>
+        </Link>
+      ) : null}
       {deadlines ? (
         <DeadlineStrip overdue={deadlines.overdue.map(toDeadline)} dueSoon={deadlines.dueSoon.map(toDeadline)} />
       ) : null}

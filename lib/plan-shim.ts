@@ -6,17 +6,42 @@ import 'server-only'
  * so the pages run unchanged and their ticks, notes and hours are shared between client and consultant.
  * It also labels ticked items with who ticked them and when, and tells the portal page when something saved.
  */
-export function planShim(config: { slug: string; space: string; viewerName: string; replied?: string[]; contact?: string }) {
+export function planShim(config: {
+  slug: string
+  space: string
+  viewerName: string
+  replied?: string[]
+  contact?: string
+  consultant?: string
+  baseline?: { label: string; w1: string; end: string }[]
+}) {
   const cfg = JSON.stringify({
     url: `/api/portal/${encodeURIComponent(config.slug)}/store`,
     space: config.space,
     me: config.viewerName,
     replied: config.replied ?? [],
     contact: config.contact ?? '',
+    consultant: config.consultant ?? 'Your consultant',
+    baseline: config.baseline ?? [],
   }).replace(/</g, '\\u003c')
 
   return `<style>
 .v0-upd{display:inline-block;margin-left:8px;font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+.v0-chart{margin-top:22px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:18px 20px;display:grid;gap:16px}
+.v0-chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.v0-chart-head h3{margin:0;font-size:1.25rem}
+.v0-chart-key{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.v0-chart-key i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-left:6px}
+.v0-chart-key .k-w1,.v0-bar .b-w1{background:var(--muted)}
+.v0-chart-key .k-end,.v0-bar .b-end{background:var(--gold)}
+.v0-metric{display:grid;gap:6px}
+.v0-metric-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.92rem}
+.v0-change{font-family:var(--mono);font-size:.78rem;color:var(--leaf)}
+.v0-bar-row{display:grid;grid-template-columns:1fr minmax(90px,30%);align-items:center;gap:10px}
+.v0-bar{height:10px;border-radius:999px;background:var(--paper);overflow:hidden}
+.v0-bar span{display:block;height:100%;border-radius:999px;transition:width .5s ease}
+.v0-bar-val{font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.v0-bar span{transition:none}}
 @media print{.v0-upd{color:#555}}
 </style><script>
 (function(){
@@ -69,6 +94,7 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
         var text=(e.data&&e.data.text)||'';if(box.value!==text)box.value=text;
         var st=card.querySelector('.v0-req-status');if(text&&st&&!st.dataset.busy){st.className='v0-req-status ok';st.textContent='Sent '+stamp(e).replace(/^[^\\u00b7]*\\u00b7 /,'')}
       });
+      drawChart();
       var conf=find('discovery','confirm'),cs=document.getElementById('confStatus');
       if(conf&&cs&&conf.data&&conf.data.status&&cs.textContent.indexOf(' by ')<0)cs.textContent+=' by '+conf.by;
     });
@@ -90,6 +116,58 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
     var st=t.closest('[data-req]').querySelector('.v0-req-status');st.className='v0-req-status';st.textContent='Not sent yet';
   });
   function ensureDb(){return window.claude.use('db')}
+  function num(v){var m=String(v||'').replace(/,(?=\\d{3}\\b)/g,'').match(/-?\\d+(?:\\.\\d+)?/);return m?parseFloat(m[0]):null}
+  function chartRows(){
+    var table=document.getElementById('baseTable');
+    if(!table)return CFG.baseline;
+    return [].slice.call(table.querySelectorAll('tbody tr')).map(function(tr){
+      var w=tr.querySelector('[data-p="w1"]'),en=tr.querySelector('[data-p="end"]');
+      return {label:tr.cells[0].textContent,w1:w?w.value:'',end:en?en.value:''};
+    });
+  }
+  function drawChart(){
+    var host=document.getElementById('v0-chart');
+    if(!host){
+      var sec=document.getElementById('measure');if(!sec||!(document.getElementById('baseTable')||CFG.baseline.length))return;
+      host=document.createElement('div');host.id='v0-chart';host.className='v0-chart';
+      var anchor=document.getElementById('baseNote')||sec.querySelector('.tbl');if(!anchor)return;
+      anchor.parentNode.insertBefore(host,anchor.nextSibling);
+    }
+    var rows=chartRows().filter(function(r){return num(r.w1)!==null||num(r.end)!==null});
+    var html='<div class="v0-chart-head"><h3>At a glance</h3><span class="v0-chart-key"><i class="k-w1"></i>Week 1<i class="k-end"></i>Dec 18</span></div>';
+    if(!rows.length)html+='<p class="muted">The chart fills in as numbers are added to the table.</p>';
+    else html+=rows.map(function(r){
+      var a=num(r.w1),b=num(r.end),max=Math.max(Math.abs(a||0),Math.abs(b||0))||1;
+      function bar(v,cls,txt){return '<div class="v0-bar-row"><div class="v0-bar"><span class="'+cls+'" style="width:'+(v===null?0:Math.max(2,Math.round(Math.abs(v)/max*100)))+'%"></span></div><span class="v0-bar-val">'+(txt?esc(txt):'\\u2014')+'</span></div>'}
+      var change='';
+      if(a!==null&&b!==null&&a!==b){var d=b-a,pct=a?Math.round(d/Math.abs(a)*100):null;change=(d>0?'+':'\\u2212')+Math.abs(Math.round(d*10)/10)+(pct!==null?' ('+(pct>0?'+':'\\u2212')+Math.abs(pct)+'%)':'')}
+      else if(a!==null&&b===null)change='Dec 18 number still to come';
+      return '<div class="v0-metric"><div class="v0-metric-head"><span>'+esc(r.label)+'</span><span class="v0-change">'+change+'</span></div>'+bar(a,'b-w1',r.w1)+bar(b,'b-end',r.end)+'</div>';
+    }).join('');
+    if(host.getAttribute('data-sig')===html)return;
+    host.setAttribute('data-sig',html);host.innerHTML=html;
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  document.addEventListener('input',function(e){if(e.target.closest&&e.target.closest('#baseTable'))drawChart()});
+  var FILES=CFG.url.replace(/\\/store$/,'/files');
+  function fileRow(f){
+    var li=document.createElement('li');
+    var a=document.createElement('a');a.href=f.href;a.setAttribute('data-file','');a.textContent=f.name;li.appendChild(a);
+    var s=document.createElement('span');s.className='v0-meta';s.textContent=f.size;li.appendChild(s);
+    var b=document.createElement('button');b.type='button';b.className='v0-file-del';b.setAttribute('data-del-file',f.id);b.textContent='Remove';b.setAttribute('aria-label','Remove '+f.name);li.appendChild(b);
+    return li;
+  }
+  document.addEventListener('change',function(e){
+    var input=e.target;if(!input.matches||!input.matches('input[data-upload]'))return;
+    var id=input.getAttribute('data-upload'),card=input.closest('[data-req]'),list=card.querySelector('.v0-files'),st=card.querySelector('.v0-file-status');
+    var files=[].slice.call(input.files||[]);input.value='';if(!files.length)return;
+    st.className='v0-file-status';st.textContent='Uploading\\u2026';
+    files.reduce(function(chain,file){return chain.then(function(){
+      var fd=new FormData();fd.append('itemId',id);fd.append('file',file);
+      return fetch(FILES,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'Upload failed');return j})}).then(function(f){list.appendChild(fileRow(f));list.hidden=false});
+    })},Promise.resolve()).then(function(){st.className='v0-file-status ok';st.textContent=files.length>1?'Files attached. '+CFG.consultant+' has them.':'Attached. '+CFG.consultant+' has it.'},
+      function(err){st.className='v0-file-status err';st.textContent=err.message||'Upload failed. Try again.'});
+  });
   document.addEventListener('click',function(e){
     var send=e.target.closest&&e.target.closest('[data-send]');
     if(send){
@@ -99,6 +177,16 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
       ensureDb().then(function(){return ready}).then(function(){return put('responses',id,{text:text,at:new Date().toISOString()})}).then(function(){
         dirty[id]=false;delete st.dataset.busy;st.className='v0-req-status ok';st.textContent='Sent. '+send.textContent.replace(/^Send to /,'')+' has it.';
       },function(){delete st.dataset.busy;st.className='v0-req-status err';st.textContent='Couldn\\u2019t send. Check your connection and try again.'}).then(function(){send.disabled=false});
+      return;
+    }
+    var delBtn=e.target.closest&&e.target.closest('[data-del-file]');
+    if(delBtn){
+      var li=delBtn.closest('li'),name=li.querySelector('a').textContent;
+      if(!confirm('Remove '+name+'?'))return;
+      delBtn.disabled=true;
+      fetch(FILES+'?id='+encodeURIComponent(delBtn.getAttribute('data-del-file')),{method:'DELETE',credentials:'same-origin'}).then(function(r){
+        if(!r.ok)throw new Error();var ul=li.parentNode;li.remove();if(!ul.children.length)ul.hidden=true;
+      }).catch(function(){delBtn.disabled=false;alert('Couldn\\u2019t remove that file. Try again.')});
       return;
     }
     var rev=e.target.closest&&e.target.closest('[data-review]');
@@ -115,6 +203,7 @@ export function planShim(config: { slug: string; space: string; viewerName: stri
   document.addEventListener('click',function(e){
     var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;
     var href=a.getAttribute('href')||'';if(href.charAt(0)==='#')return;
+    if(a.hasAttribute('data-file')){a.target='_blank';a.rel='noopener';return}
     a.target=/^https?:/i.test(href)&&a.host!==location.host?'_blank':'_top';
     if(a.target==='_blank')a.rel='noopener noreferrer';
   },true);

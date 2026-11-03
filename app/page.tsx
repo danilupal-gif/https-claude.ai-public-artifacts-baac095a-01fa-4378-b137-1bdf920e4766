@@ -7,6 +7,8 @@ import { Process } from '@/components/site/process'
 import { Services } from '@/components/site/services'
 import { SiteFooter } from '@/components/site/site-footer'
 import { SiteHeader } from '@/components/site/site-header'
+import { TimeValue } from '@/components/site/time-value'
+import { WhatToExpect } from '@/components/site/what-to-expect'
 import { serviceOptions } from '@/lib/site'
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ service?: string }> }) {
@@ -18,6 +20,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <SiteHeader />
       <main>
         <Hero />
+        <TimeValue />
+        <WhatToExpect />
         <Approach />
         <Services />
         <Process />

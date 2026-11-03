@@ -9,6 +9,7 @@ import { db } from '@/lib/db'
 import { clientDocuments, portalAccess } from '@/lib/db/schema'
 import { inviteEmail, sendEmail, siteOrigin } from '@/lib/email'
 import { canViewClient, generateInviteCode, getViewer, hashInviteCode } from '@/lib/portal'
+import { buildWeeklyDigest, clientRecipients } from '@/lib/weekly-digest'
 
 export type ActionState = { ok: boolean; message?: string; code?: string; email?: string; emailed?: boolean }
 
@@ -137,6 +138,51 @@ export async function saveWelcomeNote(_prev: ActionState, formData: FormData): P
   revalidatePath('/portal/admin')
   revalidatePath(`/portal/${parsed.data.slug}`)
   return { ok: true, message: parsed.data.note ? 'Saved. It shows the next time they open their plan.' : 'Note removed.' }
+}
+
+const settingsSchema = z.object({
+  slug: z.string().min(1),
+  bookingUrl: z
+    .string()
+    .trim()
+    .max(300, 'That link is too long.')
+    .refine((v) => v === '' || /^https:\/\/[^\s<>"']+$/i.test(v), 'Use a full link starting with https://'),
+})
+
+export async function saveClientSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+  const parsed = settingsSchema.safeParse({ slug: formData.get('slug'), bookingUrl: formData.get('bookingUrl') ?? '' })
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message }
+  if (!(await getClient(parsed.data.slug))) return { ok: false, message: 'Unknown client.' }
+
+  await writeMeta(
+    parsed.data.slug,
+    'settings',
+    'main',
+    { bookingUrl: parsed.data.bookingUrl, weeklyEmail: formData.get('weeklyEmail') === 'on' },
+    viewer.email,
+  )
+  revalidatePath('/portal/admin')
+  revalidatePath(`/portal/${parsed.data.slug}`)
+  return { ok: true, message: 'Saved.' }
+}
+
+export async function sendWeeklyPreview(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+  const slug = String(formData.get('slug') ?? '')
+  if (!(await getClient(slug))) return { ok: false, message: 'Unknown client.' }
+
+  const recipients = await clientRecipients(slug)
+  const digest = await buildWeeklyDigest(slug, await siteOrigin(), recipients[0]?.name ?? null)
+  if (!digest) return { ok: false, message: 'Upload the plan pages first.' }
+  const result = await sendEmail({ to: viewer.email, subject: `[Preview] ${digest.subject}`, html: digest.html, text: digest.text })
+  if (!result.ok) return { ok: false, message: result.error }
+  return {
+    ok: true,
+    message: `Preview sent to ${viewer.email}.${recipients.length ? '' : ' No active client login yet, so Monday’s email has no one to go to.'}`,
+  }
 }
 
 export async function dismissWelcome(slug: string): Promise<void> {

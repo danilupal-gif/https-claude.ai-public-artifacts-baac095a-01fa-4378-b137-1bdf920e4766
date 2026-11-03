@@ -16,7 +16,7 @@ export type ClientPlanStatus = {
   lastChange: { by: string; at: Date } | null
 }
 
-async function documentItems(slug: string) {
+export async function documentItems(slug: string) {
   const docs = await db
     .select({ kind: clientDocuments.kind, html: clientDocuments.html })
     .from(clientDocuments)
