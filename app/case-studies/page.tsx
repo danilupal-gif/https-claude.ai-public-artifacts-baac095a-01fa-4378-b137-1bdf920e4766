@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { ClientSpotlight } from '@/components/site/client-spotlight'
 import { SiteFooter } from '@/components/site/site-footer'
 import { SiteHeader } from '@/components/site/site-header'
 import { getPublishedCaseStudies } from '@/lib/case-studies'
@@ -28,6 +29,8 @@ export default async function CaseStudiesPage() {
             Each story is shared with the owner&apos;s permission.
           </p>
         </header>
+
+        <ClientSpotlight />
 
         {studies.length ? (
           <ul className={`grid gap-6 lining-nums ${studies.length > 1 ? 'md:grid-cols-2' : 'max-w-3xl'}`}>
@@ -62,7 +65,7 @@ export default async function CaseStudiesPage() {
           </ul>
         ) : (
           <div className="flex max-w-2xl flex-col gap-5 border border-border bg-card p-8">
-            <p className="font-serif text-3xl leading-snug text-balance">Our first pilot results are on the way.</p>
+            <p className="font-serif text-3xl leading-snug text-balance">More measured results are on the way.</p>
             <p className="leading-relaxed text-muted-foreground">
               We publish a story only after the owner reviews it and says yes. Want to be one of them?
             </p>
