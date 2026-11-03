@@ -104,7 +104,7 @@ export default async function AdminPage() {
               id="access-title"
               eyebrow="Portal access"
               title="Invite a client"
-              intro="Creates a one-time access code. Send it to your client with the link to /portal/activate. The code is shown once."
+              intro="Creates a one-time access code and emails it to your client with their activation link. The code is also shown to you once, as a backup."
             />
             <GrantAccessForm clients={clientList.map((c) => ({ slug: c.slug, name: c.name }))} />
           </div>

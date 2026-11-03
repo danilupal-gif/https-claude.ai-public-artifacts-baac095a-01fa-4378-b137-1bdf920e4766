@@ -7,9 +7,10 @@ import { auth } from '@/lib/auth'
 import { getClient, writeMeta } from '@/lib/clients'
 import { db } from '@/lib/db'
 import { clientDocuments, portalAccess } from '@/lib/db/schema'
+import { inviteEmail, sendEmail, siteOrigin } from '@/lib/email'
 import { canViewClient, generateInviteCode, getViewer, hashInviteCode } from '@/lib/portal'
 
-export type ActionState = { ok: boolean; message?: string; code?: string; email?: string }
+export type ActionState = { ok: boolean; message?: string; code?: string; email?: string; emailed?: boolean }
 
 const activateSchema = z.object({
   name: z.string().trim().min(1, 'Please enter your name.').max(80),
@@ -89,7 +90,22 @@ export async function grantAccess(_prev: ActionState, formData: FormData): Promi
     .onConflictDoUpdate({ target: portalAccess.email, set: values })
 
   revalidatePath('/portal/admin')
-  return { ok: true, code, email }
+
+  if (formData.get('sendEmail') !== 'on') return { ok: true, code, email }
+
+  const client = role === 'client' ? await getClient(clientSlug) : null
+  const message = inviteEmail({
+    greetingName: client?.contact,
+    clientName: client?.name,
+    inviter: viewer.name.split(/\s+/)[0],
+    code,
+    email,
+    link: `${await siteOrigin()}/portal/activate?email=${encodeURIComponent(email)}`,
+  })
+  const sent = await sendEmail({ to: email, replyTo: viewer.email, ...message })
+  return sent.ok
+    ? { ok: true, code, email, emailed: true }
+    : { ok: true, code, email, emailed: false, message: `${sent.error} Send the code below yourself.` }
 }
 
 export async function revokeAccess(email: string): Promise<ActionState> {

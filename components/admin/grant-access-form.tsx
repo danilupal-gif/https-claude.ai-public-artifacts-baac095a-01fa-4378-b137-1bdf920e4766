@@ -33,6 +33,13 @@ export function GrantAccessForm({ clients }: { clients: { slug: string; name: st
           </select>
         </div>
         <input type="hidden" name="role" value="client" />
+        <label className="flex items-start gap-3 text-sm leading-relaxed">
+          <input type="checkbox" name="sendEmail" defaultChecked className="mt-1 size-4 accent-primary" />
+          <span>
+            Email the invitation and access code to them
+            <span className="block text-muted-foreground">Replies come to your email address.</span>
+          </span>
+        </label>
         {state.message ? (
           <p role="alert" className="text-sm text-destructive">
             {state.message}
@@ -47,7 +54,17 @@ export function GrantAccessForm({ clients }: { clients: { slug: string; name: st
       {state.ok && state.code ? (
         <div role="status" className="flex flex-col gap-3 border border-primary/50 p-5">
           <p className="text-sm text-muted-foreground">
-            Access code for <span className="text-foreground">{state.email}</span>. Copy it now; it won’t be shown again.
+            {state.emailed ? (
+              <>
+                Invitation emailed to <span className="text-foreground">{state.email}</span>. The code is here as a backup
+                in case it lands in spam; it won’t be shown again.
+              </>
+            ) : (
+              <>
+                Access code for <span className="text-foreground">{state.email}</span>. Copy it now and send it with the
+                link to /portal/activate; it won’t be shown again.
+              </>
+            )}
           </p>
           <div className="flex items-center justify-between gap-3">
             <code className="font-mono text-xl tracking-widest text-primary">{state.code}</code>

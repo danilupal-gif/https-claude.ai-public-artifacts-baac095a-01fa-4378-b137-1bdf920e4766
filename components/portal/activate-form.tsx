@@ -9,7 +9,7 @@ import { fieldInput, fieldLabel, primaryButton } from './auth-shell'
 
 const initialState: ActionState = { ok: false }
 
-export function ActivateForm() {
+export function ActivateForm({ defaultEmail = '' }: { defaultEmail?: string }) {
   const router = useRouter()
   const submittedPassword = useRef('')
   const [state, formAction, pending] = useActionState(activateAccount, initialState)
@@ -54,7 +54,7 @@ export function ActivateForm() {
         <label htmlFor="email" className={fieldLabel}>
           Email Danielle invited
         </label>
-        <input id="email" name="email" type="email" autoComplete="email" required className={fieldInput} />
+        <input id="email" name="email" type="email" autoComplete="email" required defaultValue={defaultEmail} className={fieldInput} />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="code" className={fieldLabel}>
