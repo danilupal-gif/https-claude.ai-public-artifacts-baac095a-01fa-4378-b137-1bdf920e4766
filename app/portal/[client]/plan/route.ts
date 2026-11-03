@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { clientDocuments } from '@/lib/db/schema'
+import { getClientSettings } from '@/lib/client-settings'
 import { canUseSpace, isPlanSpace } from '@/lib/plan-docs'
 import {
   INBOX_SECTION_ID,
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let page = doc.html
   let replied: string[] = []
   if (view === 'client') {
-    const section = clientRequestsSection(requestItems(doc.html), await consultantName())
+    const [consultant, settings] = await Promise.all([consultantName(), getClientSettings(slug)])
+    const section = clientRequestsSection(requestItems(doc.html), consultant, settings.bookingUrl)
     page = injectSection(page, section, { id: REQUESTS_SECTION_ID, label: 'Your input', afterId: 'thisweek', beforeId: 'timeline' })
   } else {
     const replies = await getClientReplies(slug)

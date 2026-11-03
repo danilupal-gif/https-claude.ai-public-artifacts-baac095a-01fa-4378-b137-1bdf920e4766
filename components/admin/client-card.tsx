@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { ClientSettingsForm } from '@/components/admin/client-settings-form'
 import { UpdatePagesForm } from '@/components/admin/update-pages-form'
+import { WeeklyPreviewButton } from '@/components/admin/weekly-preview-button'
+import type { ClientSettings } from '@/lib/client-settings'
 import { WelcomeNoteForm } from '@/components/admin/welcome-note-form'
 import type { Client } from '@/lib/clients'
 import { formatDue } from '@/lib/plan-items'
@@ -31,11 +34,13 @@ export function ClientCard({
   status,
   toReview,
   welcomeNote,
+  settings,
 }: {
   client: Client
   status: ClientPlanStatus
   toReview: number
   welcomeNote: string
+  settings: ClientSettings
 }) {
   return (
     <article className="flex flex-col border border-border bg-card">
@@ -99,6 +104,20 @@ export function ClientCard({
         </summary>
         <div className="px-6 pb-6">
           <WelcomeNoteForm slug={client.slug} contact={client.contact} note={welcomeNote} />
+        </div>
+      </details>
+      <details className="border-t border-border">
+        <summary className="cursor-pointer list-none px-6 py-4 text-xs uppercase tracking-[0.2em] text-primary hover:text-foreground">
+          Check-ins &amp; weekly email · {settings.bookingUrl ? 'link set' : 'no link'} · {settings.weeklyEmail ? 'email on' : 'email off'}
+        </summary>
+        <div className="flex flex-col gap-4 px-6 pb-6">
+          <ClientSettingsForm
+            slug={client.slug}
+            contact={client.contact}
+            bookingUrl={settings.bookingUrl}
+            weeklyEmail={settings.weeklyEmail}
+          />
+          <WeeklyPreviewButton slug={client.slug} />
         </div>
       </details>
       <details className="border-t border-border">

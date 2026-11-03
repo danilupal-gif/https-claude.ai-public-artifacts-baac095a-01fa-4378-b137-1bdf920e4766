@@ -95,11 +95,16 @@ const STYLE = `<style>
 .v0-pill.new{background:var(--leaf);color:var(--paper);border-color:var(--leaf)}
 .v0-next{margin:0;padding-left:18px;display:grid;gap:4px;color:var(--ink)}
 .v0-req.is-reviewed{opacity:.72}
+.v0-book{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 0;color:var(--muted)}
+.v0-book .btn{text-decoration:none;display:inline-block}
 @media print{.v0-req .btnrow{display:none}}
 </style>`
 
-export function clientRequestsSection(items: PlanItem[], consultant: string) {
+export function clientRequestsSection(items: PlanItem[], consultant: string, bookingUrl: string | null = null) {
   if (items.length === 0) return ''
+  const booking = bookingUrl
+    ? `<p class="v0-book">Easier to talk it through? <a href="${e(bookingUrl)}" class="btn">Book a check-in with ${e(consultant)}</a></p>`
+    : ''
   const cards = items
     .map(
       (i) => `<div class="v0-req" data-req="${e(i.id)}">
@@ -115,6 +120,7 @@ export function clientRequestsSection(items: PlanItem[], consultant: string) {
     <div class="eyebrow">What I need from you</div>
     <h2>Your input</h2>
     <p class="muted">Add anything I&#39;ve asked for under the matching item and press send. It comes straight to me, and you can update it any time. Please don&#39;t paste passwords here: invite me as a user on the tool instead.</p>
+    ${booking}
   </div>
   <div class="v0-reqs">${cards}</div>
 </div></section>`
