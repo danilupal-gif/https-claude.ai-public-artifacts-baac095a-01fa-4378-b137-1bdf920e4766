@@ -14,12 +14,12 @@ const delivered = [
 
 const inProgress = [
   {
-    title: 'Staff Access & Scheduling',
-    body: 'Setting up staff accounts with the right permissions, plus shift scheduling, so the team is organized from day one.',
+    title: 'Workforce Scheduling & Automation',
+    body: 'Automated shift scheduling and staff access, so the team is organized and ready from day one.',
   },
   {
-    title: 'Food & Beverage Ordering',
-    body: 'An ordering system that makes it faster to take, track and fill food and drink orders.',
+    title: 'Food & Beverage Ordering Optimization',
+    body: 'A streamlined ordering system that makes it faster to take, track and fill food and drink orders.',
   },
 ]
 
