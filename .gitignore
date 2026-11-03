@@ -12,3 +12,5 @@ next-env.d.ts
 .env*.local
 .vercel
 .next-verify/
+# Plan pages are loaded into the database; never commit them (the repo is public)
+.plan-import/

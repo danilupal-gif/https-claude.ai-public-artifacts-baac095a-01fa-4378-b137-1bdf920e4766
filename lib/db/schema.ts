@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, unique } from 'drizzle-orm/pg-core'
 
 // --- Better Auth required tables (camelCase columns match Better Auth defaults)
 
@@ -87,6 +87,34 @@ export const clientMessages = pgTable('client_messages', {
   body: text('body').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
+
+/** Plan pages per client: kind 'client' (what the client sees) or 'internal' (admin only). */
+export const clientDocuments = pgTable(
+  'client_documents',
+  {
+    clientSlug: text('client_slug').notNull(),
+    kind: text('kind').notNull(),
+    title: text('title').notNull(),
+    html: text('html').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.clientSlug, t.kind] })],
+)
+
+/** Saved state for the plan pages (checklists, confirmations, baseline, hours). */
+export const clientStore = pgTable(
+  'client_store',
+  {
+    clientSlug: text('client_slug').notNull(),
+    space: text('space').notNull(),
+    collection: text('collection').notNull(),
+    docId: text('doc_id').notNull(),
+    data: jsonb('data').notNull(),
+    updatedBy: text('updated_by').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.clientSlug, t.space, t.collection, t.docId] })],
+)
 
 // --- Website inquiries (existing table) ------------------------------------
 

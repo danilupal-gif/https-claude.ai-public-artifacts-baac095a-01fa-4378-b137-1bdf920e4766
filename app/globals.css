@@ -43,27 +43,6 @@
   --font-serif: var(--font-cormorant), Georgia, serif;
 }
 
-/* Client operational plan palette: sage paper, forest green, herbal gold */
-.plan-theme {
-  color-scheme: light;
-  --background: #f5f6f2;
-  --foreground: #17211b;
-  --card: #ffffff;
-  --card-foreground: #17211b;
-  --surface: #e8ebe4;
-  --primary: #1e3b2c;
-  --primary-foreground: #f5f6f2;
-  --accent: #d4a72c;
-  --accent-foreground: #17211b;
-  --muted: #e8ebe4;
-  --muted-foreground: #56635a;
-  --border: #d9ddd4;
-  --input: #c3cabd;
-  --ring: #1e3b2c;
-  --destructive: #a63d2a;
-  --radius: 0.375rem;
-}
-
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 5rem;
