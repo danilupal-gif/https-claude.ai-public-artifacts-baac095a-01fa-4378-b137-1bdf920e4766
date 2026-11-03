@@ -31,7 +31,7 @@ export function ClientSpotlight() {
         <h2 id="spotlight-title" className="font-serif text-4xl leading-tight text-balance md:text-5xl">
           Vibes Lounge
         </h2>
-        <p className="text-sm text-muted-foreground">Devin Mooring, owner · Grand opening November 13, 2026</p>
+        <p className="text-sm text-muted-foreground">Devin Mooring, owner · Grand opening coming soon</p>
       </div>
 
       <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
@@ -97,7 +97,7 @@ export function ClientSpotlight() {
           </div>
 
           <p className="border-l border-primary pl-4 leading-relaxed text-muted-foreground text-pretty">
-            <span className="text-foreground">Full case study coming soon.</span> After the November 13 grand opening,
+            <span className="text-foreground">Full case study coming soon.</span> After the grand opening,
             we&apos;ll share the results of this digital work from start to finish.
           </p>
 
