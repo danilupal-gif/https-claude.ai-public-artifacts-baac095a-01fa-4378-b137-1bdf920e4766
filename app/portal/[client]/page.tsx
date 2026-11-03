@@ -1,19 +1,22 @@
 import type { Metadata } from 'next'
 import { asc, eq } from 'drizzle-orm'
-import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { MessagesPanel } from '@/components/dashboard/messages-panel'
-import { MilestonesBoard } from '@/components/dashboard/milestones-board'
-import { NeedsChecklist } from '@/components/dashboard/needs-checklist'
-import { Overview } from '@/components/dashboard/overview'
-import { PlanDetails } from '@/components/dashboard/plan-details'
+import { PlanHeader } from '@/components/dashboard/plan-header'
+import { PlanHero } from '@/components/dashboard/plan-hero'
+import { PlanJourney } from '@/components/dashboard/plan-journey'
+import { PlanMeasures } from '@/components/dashboard/plan-measures'
+import { PlanNeeds } from '@/components/dashboard/plan-needs'
+import { PlanPriorities } from '@/components/dashboard/plan-priorities'
+import { PlanReview } from '@/components/dashboard/plan-review'
+import { PlanTimeline } from '@/components/dashboard/plan-timeline'
 import { db } from '@/lib/db'
 import { clientItemStatus, clientMessages } from '@/lib/db/schema'
 import { clients, requireClientViewer, isClientSlug } from '@/lib/portal'
-import { milestones, needs, type MilestoneStatus, type NeedStatus } from '@/lib/plan'
+import { milestones, needs, plan, type MilestoneStatus, type NeedStatus } from '@/lib/plan'
 
 export async function generateMetadata({ params }: { params: Promise<{ client: string }> }): Promise<Metadata> {
   const { client } = await params
-  return { title: isClientSlug(client) ? clients[client].name : 'Client Portal' }
+  return { title: isClientSlug(client) ? `${clients[client].name} · Operational Plan` : 'Client Portal' }
 }
 
 export default async function ClientDashboard({ params }: { params: Promise<{ client: string }> }) {
@@ -47,25 +50,29 @@ export default async function ClientDashboard({ params }: { params: Promise<{ cl
   const isAdmin = viewer.role === 'admin'
 
   return (
-    <div className="min-h-svh">
-      <DashboardHeader viewerName={viewer.name} isAdmin={isAdmin} />
-      <main className="mx-auto flex max-w-7xl flex-col gap-16 px-5 pb-24 pt-10 md:px-8">
-        <Overview today={today} milestoneStatus={milestoneStatus} needStatus={needStatus} />
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="flex flex-col gap-10 lg:col-span-8">
-            <MilestonesBoard slug={slug} statuses={milestoneStatus} canEdit={isAdmin} today={today} />
-          </div>
-          <div className="flex flex-col gap-10 lg:col-span-4">
-            <NeedsChecklist slug={slug} statuses={needStatus} today={today} />
-            <MessagesPanel
-              slug={slug}
-              viewerRole={viewer.role}
-              messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
-            />
-          </div>
-        </div>
-        <PlanDetails />
+    <div className="plan-theme min-h-svh bg-background font-sans text-foreground">
+      <PlanHeader viewerName={viewer.name} isAdmin={isAdmin} />
+      <main>
+        <PlanHero today={today} milestoneStatus={milestoneStatus} needStatus={needStatus} />
+        <PlanPriorities />
+        <PlanTimeline slug={slug} statuses={milestoneStatus} canEdit={isAdmin} today={today} />
+        <PlanJourney />
+        <PlanMeasures />
+        <PlanNeeds slug={slug} statuses={needStatus} today={today} />
+        <PlanReview>
+          <MessagesPanel
+            slug={slug}
+            viewerRole={viewer.role}
+            messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
+          />
+        </PlanReview>
       </main>
+      <footer className="mx-auto flex max-w-5xl flex-col gap-1 px-5 py-8 text-sm text-muted-foreground md:flex-row md:justify-between">
+        <span>
+          Prepared by {plan.firm} for {plan.business}
+        </span>
+        <span>{plan.preparedOn} · Confidential</span>
+      </footer>
     </div>
   )
 }

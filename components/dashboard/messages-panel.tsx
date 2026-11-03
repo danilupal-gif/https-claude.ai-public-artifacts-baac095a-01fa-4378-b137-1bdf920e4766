@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { Loader2, Send } from 'lucide-react'
 import { postMessage, type ActionState } from '@/app/portal/actions'
-import { PanelHeading } from './panel-heading'
 
 type Message = { id: number; authorName: string; authorRole: string; body: string; createdAt: string }
 
@@ -28,13 +27,21 @@ export function MessagesPanel({
   }, [messages.length])
 
   return (
-    <section aria-labelledby="messages-title" className="no-print flex flex-col gap-6 border border-border bg-card p-6">
-      <PanelHeading
-        id="messages-title"
-        eyebrow="Direct line"
-        title="Questions & notes"
-        intro={viewerRole === 'admin' ? 'Replies appear here for Keon.' : 'Anything on your mind. Danielle replies within one business day.'}
-      />
+    <section
+      aria-labelledby="messages-title"
+      className="no-print flex flex-col gap-6 rounded-lg bg-card p-6 text-card-foreground"
+    >
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Direct line</p>
+        <h3 id="messages-title" className="font-serif text-2xl font-medium text-primary">
+          Questions & changes
+        </h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {viewerRole === 'admin'
+            ? 'Replies appear here for Keon.'
+            : 'Send me anything you’d like changed or asked. I reply within one business day.'}
+        </p>
+      </div>
       {messages.length > 0 ? (
         <ol ref={listRef} className="flex max-h-96 flex-col gap-4 overflow-y-auto" aria-label="Messages">
           {messages.map((m) => {
@@ -68,7 +75,7 @@ export function MessagesPanel({
           required
           maxLength={2000}
           placeholder="Write a message..."
-          className="w-full resize-y border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
+          className="w-full resize-y rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
         />
         {state.message ? (
           <p role="alert" className="text-sm text-destructive">
@@ -78,7 +85,7 @@ export function MessagesPanel({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 self-end bg-primary px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
           Send

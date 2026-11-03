@@ -5,6 +5,7 @@ export const plan = {
   shortName: 'The Deep Reset',
   consultant: 'Danielle',
   firm: 'ÉLEVÉ Business Partners',
+  tagline: 'Strategy, Operations & Automation',
   engagement: 'Customer Operations Setup · Pilot',
   window: 'Nov 9 – Dec 18, 2026',
   startDate: '2026-11-09',
