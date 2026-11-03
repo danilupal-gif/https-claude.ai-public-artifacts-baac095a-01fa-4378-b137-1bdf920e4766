@@ -10,6 +10,7 @@ export const brand = {
 }
 
 export const nav = [
+  { label: 'About', href: '/about' },
   { label: 'Approach', href: '/#approach' },
   { label: 'Services', href: '/#services' },
   { label: 'Process', href: '/#process' },
