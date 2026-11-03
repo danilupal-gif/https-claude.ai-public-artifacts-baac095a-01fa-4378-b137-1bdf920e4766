@@ -9,6 +9,7 @@ import { PanelHeading } from '@/components/dashboard/panel-heading'
 import { db } from '@/lib/db'
 import { portalAccess, projectInquiries } from '@/lib/db/schema'
 import { getClients, readMeta } from '@/lib/clients'
+import { getCaseStudyCard } from '@/lib/case-study-card'
 import { getClientSettings } from '@/lib/client-settings'
 import { getClientReplies } from '@/lib/plan-requests'
 import { getClientActivity, getPlanStatus } from '@/lib/plan-status'
@@ -48,10 +49,11 @@ export default async function AdminPage() {
   ])
 
   const clientList = await getClients()
-  const [statuses, replies, settings, notes, activity, seen] = await Promise.all([
+  const [statuses, replies, settings, caseStudies, notes, activity, seen] = await Promise.all([
     Promise.all(clientList.map((c) => getPlanStatus(c.slug))),
     Promise.all(clientList.map((c) => getClientReplies(c.slug))),
     Promise.all(clientList.map((c) => getClientSettings(c.slug))),
+    Promise.all(clientList.map((c) => getCaseStudyCard(c))),
     Promise.all(clientList.map((c) => readMeta<{ text?: string }>(c.slug, 'welcome', 'note'))),
     getClientActivity(),
     readMeta<{ at: string }>('*', 'activity-seen', viewer.userId),
@@ -78,6 +80,7 @@ export default async function AdminPage() {
                   toReview={replies[i].filter((r) => !r.reviewed).length}
                   welcomeNote={notes[i]?.data.text ?? ''}
                   settings={settings[i]}
+                  caseStudy={caseStudies[i]}
                 />
               </li>
             ))}

@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { clientDocuments } from '@/lib/db/schema'
+import { listClientFiles } from '@/lib/client-files'
+import { getBaselineRows } from '@/lib/plan-baseline'
 import { getClientSettings } from '@/lib/client-settings'
 import { canUseSpace, isPlanSpace } from '@/lib/plan-docs'
 import {
@@ -47,12 +49,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const clientLink = `/portal/${slug}?view=client`
   let page = doc.html
   let replied: string[] = []
+  let consultant = 'Your consultant'
+  let baseline: { label: string; w1: string; end: string }[] = []
   if (view === 'client') {
-    const [consultant, settings] = await Promise.all([consultantName(), getClientSettings(slug)])
-    const section = clientRequestsSection(requestItems(doc.html), consultant, settings.bookingUrl)
+    const [name, settings, files] = await Promise.all([consultantName(), getClientSettings(slug), listClientFiles(slug)])
+    consultant = name
+    const section = clientRequestsSection(requestItems(doc.html), name, settings.bookingUrl, files, slug)
     page = injectSection(page, section, { id: REQUESTS_SECTION_ID, label: 'Your input', afterId: 'thisweek', beforeId: 'timeline' })
   } else {
-    const replies = await getClientReplies(slug)
+    const [replies, rows] = await Promise.all([getClientReplies(slug), getBaselineRows(slug)])
+    baseline = rows.map(({ label, w1, end }) => ({ label, w1, end }))
     replied = replies.map((r) => r.item.id)
     page = injectSection(page, internalInboxSection(replies, client.contact), {
       id: INBOX_SECTION_ID,
@@ -65,7 +71,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .replace(ARTIFACT_TEXT, 'open it in the client portal')
     .replace(ORIGINAL_FONTS, '')
     .replace('</style>', `</style>${planThemeStyle}`)
-  const shim = planShim({ slug, space: view, viewerName: firstName(viewer.name), replied, contact: client.contact })
+  const shim = planShim({ slug, space: view, viewerName: firstName(viewer.name), replied, contact: client.contact, consultant, baseline })
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">${planFontsLink}<style>body{margin:0}</style>${shim}${body}`
 
   return new Response(html, {

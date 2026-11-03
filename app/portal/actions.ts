@@ -9,6 +9,7 @@ import { db } from '@/lib/db'
 import { clientDocuments, portalAccess } from '@/lib/db/schema'
 import { inviteEmail, sendEmail, siteOrigin } from '@/lib/email'
 import { canViewClient, generateInviteCode, getViewer, hashInviteCode } from '@/lib/portal'
+import { buildWeeklyDigest, clientRecipients } from '@/lib/weekly-digest'
 
 export type ActionState = { ok: boolean; message?: string; code?: string; email?: string; emailed?: boolean }
 
@@ -165,6 +166,23 @@ export async function saveClientSettings(_prev: ActionState, formData: FormData)
   revalidatePath('/portal/admin')
   revalidatePath(`/portal/${parsed.data.slug}`)
   return { ok: true, message: 'Saved.' }
+}
+
+export async function sendWeeklyPreview(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const viewer = await getViewer()
+  if (!viewer || viewer.role !== 'admin') return { ok: false, message: 'Not allowed.' }
+  const slug = String(formData.get('slug') ?? '')
+  if (!(await getClient(slug))) return { ok: false, message: 'Unknown client.' }
+
+  const recipients = await clientRecipients(slug)
+  const digest = await buildWeeklyDigest(slug, await siteOrigin(), recipients[0]?.name ?? null)
+  if (!digest) return { ok: false, message: 'Upload the plan pages first.' }
+  const result = await sendEmail({ to: viewer.email, subject: `[Preview] ${digest.subject}`, html: digest.html, text: digest.text })
+  if (!result.ok) return { ok: false, message: result.error }
+  return {
+    ok: true,
+    message: `Preview sent to ${viewer.email}.${recipients.length ? '' : ' No active client login yet, so Monday’s email has no one to go to.'}`,
+  }
 }
 
 export async function dismissWelcome(slug: string): Promise<void> {

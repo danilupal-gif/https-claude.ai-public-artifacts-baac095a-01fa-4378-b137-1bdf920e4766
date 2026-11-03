@@ -1,10 +1,11 @@
 export const brand = {
   name: 'ÉLEVÉ',
   fullName: 'ÉLEVÉ Business Partners',
-  tagline: 'Strategy, Operations & Automation',
-  story: 'Helping business owners elevate how they operate, serve and grow.',
+  tagline: 'Smarter strategy. Seamless systems. More room to grow.',
+  story: 'Helping business owners elevate how they operate, automate and scale.',
   positioning:
-    'We help business owners simplify their operations, strengthen the customer experience, and build the capacity to scale.',
+    'We help business owners simplify operations, automate everyday tasks and create a better customer experience, so you spend less time on the manual details and more time growing your business.',
+  domain: 'elevebeyond.com',
   founder: 'Danielle',
 }
 
@@ -13,6 +14,7 @@ export const nav = [
   { label: 'Services', href: '/#services' },
   { label: 'Process', href: '/#process' },
   { label: 'Fit', href: '/#fit' },
+  { label: 'Results', href: '/case-studies' },
   { label: 'Contact', href: '/#contact' },
 ]
 
@@ -100,6 +102,41 @@ export const process = [
     body: 'Optional monthly support keeps it running, with a scorecard so you can see what changed.',
   },
 ]
+
+export const consultation = {
+  intro:
+    'Every engagement starts with a Business Workflow Review. No jargon, no pressure, and no changes to your business until you say yes. Here is how it goes.',
+  steps: [
+    {
+      when: 'First conversation',
+      title: 'We listen',
+      body: 'You walk us through how the business runs today, what takes your time and where customers get stuck.',
+    },
+    {
+      when: 'Week 1',
+      title: 'We map and measure',
+      body: 'We trace one customer from first inquiry to repeat purchase, review the tools you already pay for and record your starting numbers.',
+    },
+    {
+      when: 'Week 2',
+      title: 'We show you the plan',
+      body: 'You get the few changes that matter most, in priority order, with what each one saves and what it costs.',
+    },
+    {
+      when: 'Your call',
+      title: 'You decide',
+      body: 'Run with the plan yourself, or have us build it. Either way, the review and the numbers are yours to keep.',
+    },
+  ],
+  deliverables: [
+    'A map of your customer journey',
+    'Your baseline numbers, recorded',
+    'A review of the tools you pay for',
+    'Prioritized recommendations with clear costs',
+    'Your own private client portal',
+    'A clear yes or no on next steps',
+  ],
+}
 
 export const fit = [
   'You have steady demand and paying customers',

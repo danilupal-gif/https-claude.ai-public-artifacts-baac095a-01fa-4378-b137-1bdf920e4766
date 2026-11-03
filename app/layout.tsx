@@ -10,13 +10,27 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
 })
 
+const description =
+  'Smarter strategy. Seamless systems. More room to grow. ÉLEVÉ helps business owners simplify operations, automate everyday tasks and create a better customer experience.'
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://elevebeyond.com'),
   title: {
-    default: 'ÉLEVÉ Business Partners · Strategy, Operations & Automation',
+    default: 'ÉLEVÉ Business Partners · Elevate how you operate, automate and scale',
     template: '%s · ÉLEVÉ Business Partners',
   },
-  description:
-    'ÉLEVÉ Business Partners helps business owners simplify their operations, strengthen the customer experience, and build the capacity to scale.',
+  description,
+  applicationName: 'ÉLEVÉ',
+  appleWebApp: { title: 'ÉLEVÉ', statusBarStyle: 'black-translucent' },
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    url: '/',
+    siteName: 'ÉLEVÉ Business Partners',
+    title: 'Elevate how you operate, automate and scale.',
+    description,
+  },
+  twitter: { card: 'summary_large_image', title: 'Elevate how you operate, automate and scale.', description },
 }
 
 export const viewport: Viewport = {

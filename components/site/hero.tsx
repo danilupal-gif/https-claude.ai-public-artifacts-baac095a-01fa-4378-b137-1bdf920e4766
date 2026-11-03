@@ -17,7 +17,7 @@ export function Hero() {
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/10" aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" aria-hidden="true" />
 
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-10 px-5 md:px-8">
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 md:gap-10 md:px-8">
         <p className="rise flex items-center gap-4 text-xs font-medium uppercase tracking-[0.36em] text-primary">
           <span className="h-px w-12 bg-primary" aria-hidden="true" />
           {brand.tagline}
@@ -26,7 +26,7 @@ export function Hero() {
           className="rise max-w-4xl font-serif text-5xl font-normal leading-[1.02] text-balance md:text-7xl lg:text-8xl"
           style={{ animationDelay: '120ms' }}
         >
-          Elevate how you <em className="text-primary">operate</em>, serve and grow.
+          Elevate how you operate, <em className="text-primary">automate</em> and scale.
         </h1>
         <p
           className="rise max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty"
@@ -49,6 +49,14 @@ export function Hero() {
             Explore services
           </Link>
         </div>
+        <Link
+          href="/#your-time"
+          className="rise group inline-flex w-fit items-center gap-3 font-serif text-2xl italic text-foreground/90 transition-colors hover:text-primary"
+          style={{ animationDelay: '480ms' }}
+        >
+          How much is your time worth?
+          <ArrowRight className="size-5 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
+        </Link>
       </div>
     </section>
   )

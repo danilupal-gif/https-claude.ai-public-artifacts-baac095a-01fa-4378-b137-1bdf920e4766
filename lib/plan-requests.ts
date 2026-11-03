@@ -3,6 +3,7 @@ import 'server-only'
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { clientDocuments, clientStore, portalAccess, user } from '@/lib/db/schema'
+import { FILE_ACCEPT, MAX_FILE_BYTES, fileHref, formatBytes, listClientFiles, type ClientFile } from '@/lib/client-files'
 import { escapeHtml as e } from '@/lib/email'
 import { formatDue, readPlanItems, readPlanPhases, type PlanItem } from '@/lib/plan-items'
 import { firstName } from '@/lib/plan-status'
@@ -29,6 +30,7 @@ export async function consultantName() {
 export type ClientReply = {
   item: PlanItem
   text: string
+  files: FileLink[]
   at: Date
   reviewed: boolean
   phase: string | null
@@ -37,7 +39,7 @@ export type ClientReply = {
 
 /** Every reply the client has sent, with the consultant's open tasks in the same phase of the playbook. */
 export async function getClientReplies(slug: string): Promise<ClientReply[]> {
-  const [docs, rows] = await Promise.all([
+  const [docs, rows, files] = await Promise.all([
     db
       .select({ kind: clientDocuments.kind, html: clientDocuments.html })
       .from(clientDocuments)
@@ -46,6 +48,7 @@ export async function getClientReplies(slug: string): Promise<ClientReply[]> {
       .select({ space: clientStore.space, collection: clientStore.collection, id: clientStore.docId, data: clientStore.data, at: clientStore.updatedAt })
       .from(clientStore)
       .where(and(eq(clientStore.clientSlug, slug), sql`(${clientStore.space}, ${clientStore.collection}) in (('client','responses'),('internal','inbox'),('internal','progress'))`)),
+    listClientFiles(slug),
   ])
 
   const clientHtml = docs.find((d) => d.kind === 'client')?.html
@@ -60,21 +63,28 @@ export async function getClientReplies(slug: string): Promise<ClientReply[]> {
     if (r.collection === 'progress' && data.done) done.add(r.id)
   }
 
-  const replies: ClientReply[] = []
+  const texts = new Map<string, { text: string; at: Date }>()
   for (const r of rows) {
-    if (r.collection !== 'responses') continue
-    const item = items.get(r.id)
     const text = (r.data as { text?: unknown }).text
-    if (!item || typeof text !== 'string' || !text.trim()) continue
-    const phase = phases.find((p) => p.items.some((i) => i.id === r.id)) ?? null
-    const seen = reviewedAt.get(r.id)
+    if (r.collection === 'responses' && typeof text === 'string' && text.trim()) texts.set(r.id, { text: text.trim(), at: r.at })
+  }
+
+  const replies: ClientReply[] = []
+  for (const id of new Set([...texts.keys(), ...files.keys()])) {
+    const item = items.get(id)
+    if (!item) continue
+    const attached = files.get(id) ?? []
+    const at = new Date(Math.max(texts.get(id)?.at.getTime() ?? 0, ...attached.map((f) => f.createdAt.getTime())))
+    const phase = phases.find((p) => p.items.some((i) => i.id === id)) ?? null
+    const seen = reviewedAt.get(id)
     replies.push({
       item,
-      text: text.trim(),
-      at: r.at,
-      reviewed: Boolean(seen && new Date(seen) >= r.at),
+      text: texts.get(id)?.text ?? '',
+      files: attached.map((f) => ({ id: f.id, name: f.name, size: formatBytes(f.size), href: fileHref(slug, f.id) })),
+      at,
+      reviewed: Boolean(seen && new Date(seen) >= at),
       phase: phase ? phase.name : null,
-      nextSteps: (phase?.items ?? []).filter((i) => i.owner !== 'k' && i.id !== r.id && !done.has(i.id)).slice(0, 4),
+      nextSteps: (phase?.items ?? []).filter((i) => i.owner !== 'k' && i.id !== id && !done.has(i.id)).slice(0, 4),
     })
   }
   return replies.sort((a, b) => Number(a.reviewed) - Number(b.reviewed) || b.at.getTime() - a.at.getTime())
@@ -97,10 +107,43 @@ const STYLE = `<style>
 .v0-req.is-reviewed{opacity:.72}
 .v0-book{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 0;color:var(--muted)}
 .v0-book .btn{text-decoration:none;display:inline-block}
-@media print{.v0-req .btnrow{display:none}}
+.v0-files{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.v0-files[hidden]{display:none}
+.v0-files li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.v0-files a{color:var(--ink);font-weight:600;word-break:break-all}
+.v0-file-del{margin-left:auto;background:none;border:0;color:var(--muted);font-size:.8rem;cursor:pointer;text-decoration:underline}
+.v0-file-del:hover{color:var(--alert)}
+.v0-attach-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.v0-attach{position:relative;display:inline-flex;align-items:center;border:1px dashed var(--line);border-radius:8px;padding:7px 14px;font-size:.88rem;font-weight:600;cursor:pointer}
+.v0-attach:hover,.v0-attach:focus-within{border-color:var(--gold)}
+.v0-attach input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.v0-file-status{font-size:.82rem;color:var(--muted)}
+.v0-file-status.ok{color:var(--leaf)}
+.v0-file-status.err{color:var(--alert)}
+@media print{.v0-req .btnrow,.v0-attach-row,.v0-file-del{display:none}}
 </style>`
 
-export function clientRequestsSection(items: PlanItem[], consultant: string, bookingUrl: string | null = null) {
+export type FileLink = { id: string; name: string; size: string; href: string }
+
+function fileList(files: FileLink[], removable: boolean) {
+  const rows = files
+    .map(
+      (f) =>
+        `<li><a href="${e(f.href)}" data-file>${e(f.name)}</a><span class="v0-meta">${e(f.size)}</span>${
+          removable ? `<button type="button" class="v0-file-del" data-del-file="${e(f.id)}" aria-label="Remove ${e(f.name)}">Remove</button>` : ''
+        }</li>`,
+    )
+    .join('')
+  return `<ul class="v0-files"${files.length ? '' : ' hidden'}>${rows}</ul>`
+}
+
+export function clientRequestsSection(
+  items: PlanItem[],
+  consultant: string,
+  bookingUrl: string | null = null,
+  files: Map<string, ClientFile[]> = new Map(),
+  slug = '',
+) {
   if (items.length === 0) return ''
   const booking = bookingUrl
     ? `<p class="v0-book">Easier to talk it through? <a href="${e(bookingUrl)}" class="btn">Book a check-in with ${e(consultant)}</a></p>`
@@ -111,6 +154,11 @@ export function clientRequestsSection(items: PlanItem[], consultant: string, boo
   <div class="v0-req-head"><label for="req-${e(i.id)}">${e(i.text)}</label>${i.due ? `<span class="v0-meta">Due ${e(formatDue(i.due))}</span>` : ''}</div>
   <textarea class="inp" id="req-${e(i.id)}" maxlength="2000" placeholder="Type the details, links or answers here."></textarea>
   <div class="btnrow"><button type="button" class="btn" data-send="${e(i.id)}">Send to ${e(consultant)}</button><span class="v0-req-status" aria-live="polite"></span></div>
+  ${fileList(
+    (files.get(i.id) ?? []).map((f) => ({ id: f.id, name: f.name, size: formatBytes(f.size), href: fileHref(slug, f.id) })),
+    true,
+  )}
+  <div class="v0-attach-row"><label class="v0-attach">Attach files<input type="file" multiple accept="${FILE_ACCEPT}" data-upload="${e(i.id)}"></label><span class="v0-file-status" aria-live="polite">PDF, images, spreadsheets or documents, up to ${formatBytes(MAX_FILE_BYTES)} each</span></div>
 </div>`,
     )
     .join('')
@@ -135,7 +183,8 @@ export function internalInboxSection(replies: ClientReply[], contact: string) {
       (r) => `<div class="v0-req${r.reviewed ? ' is-reviewed' : ''}" data-reply="${e(r.item.id)}">
   <div class="v0-req-head"><h3>${e(r.item.text)}</h3><span class="v0-pill${r.reviewed ? '' : ' new'}" data-reply-pill>${r.reviewed ? 'Reviewed' : 'New'}</span></div>
   <span class="v0-meta">${e(contact)} · ${e(when.format(r.at))}${r.phase ? ` · ${e(r.phase)}` : ''}</span>
-  <p class="v0-reply">${e(r.text)}</p>
+  ${r.text ? `<p class="v0-reply">${e(r.text)}</p>` : ''}
+  ${r.files.length ? `<div><div class="v0-meta" style="margin-bottom:6px">Attached files</div>${fileList(r.files, false)}</div>` : ''}
   ${
     r.nextSteps.length
       ? `<div><div class="v0-meta" style="margin-bottom:6px">Your next steps</div><ol class="v0-next">${r.nextSteps.map((s) => `<li><a href="#timeline">${e(s.text)}</a></li>`).join('')}</ol></div>`
