@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { clientDocuments } from '@/lib/db/schema'
 import { canUseSpace, isPlanSpace } from '@/lib/plan-docs'
 import { planShim } from '@/lib/plan-shim'
+import { planFontsLink, planThemeStyle } from '@/lib/plan-theme'
 import { canViewClient, getViewer, isClientSlug } from '@/lib/portal'
 
 const CLAUDE_CLIENT_PLAN = 'https://claude.ai/artifact/H1fo7zJzKfLmLFYt8hD5Fn'
@@ -32,7 +33,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const body = doc.html
     .replaceAll(CLAUDE_CLIENT_PLAN, `/portal/${slug}?view=client`)
     .replaceAll(CLAUDE_CLIENT_PLAN.replace('https://', ''), 'open it in the client portal')
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><style>body{margin:0}</style>${planShim({ slug, space: view })}${body}`
+    .replace(/<link rel="preconnect" href="https:\/\/fonts\.googleapis\.com">\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2\?family=Gloock[^"]*">/, '')
+    .replace('</style>', `</style>${planThemeStyle}`)
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">${planFontsLink}<style>body{margin:0}</style>${planShim({ slug, space: view })}${body}`
 
   return new Response(html, {
     headers: {
