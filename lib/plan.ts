@@ -134,7 +134,12 @@ export const measures = [
 export const programs = [
   { name: '21-day Starter', price: '$350', note: 'One guided cycle' },
   { name: '60-day Deep Reset', price: '$599', note: 'Recommended · two cycles plus maintenance' },
-  { name: 'Transformation', price: 'from $799', note: 'Includes up to $300 in partner services' },
+  {
+    name: 'Transformation',
+    price: 'from $799',
+    note: 'Includes up to $300 in partner services',
+    known: { 'Partner services': 'Up to $300' } as Record<string, string>,
+  },
   { name: 'Reset for Two', price: '$950', note: 'Two participants' },
 ]
 

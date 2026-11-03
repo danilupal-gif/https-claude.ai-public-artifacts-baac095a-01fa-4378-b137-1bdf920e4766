@@ -51,12 +51,15 @@ export function PlanMeasures() {
                   <span className="shrink-0 font-serif text-2xl text-primary">{p.price}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 border-t border-border pt-4 text-sm">
-                  {costColumns.map((c) => (
-                    <div key={c} className="flex flex-col">
-                      <dt className="text-muted-foreground">{c}</dt>
-                      <dd className="text-muted-foreground/70">To fill in</dd>
-                    </div>
-                  ))}
+                  {costColumns.map((c) => {
+                    const known = 'known' in p ? p.known?.[c] : undefined
+                    return (
+                      <div key={c} className="flex flex-col">
+                        <dt className="text-muted-foreground">{c}</dt>
+                        <dd className={known ? 'font-medium' : 'text-muted-foreground/70'}>{known ?? 'To fill in'}</dd>
+                      </div>
+                    )
+                  })}
                 </dl>
               </li>
             ))}
