@@ -26,7 +26,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           className="inline-flex w-fit items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          All case studies
+          All results
         </Link>
         <CaseStudyArticle study={study} />
         <section className="flex flex-col items-start gap-5 border-t border-border pt-12">
