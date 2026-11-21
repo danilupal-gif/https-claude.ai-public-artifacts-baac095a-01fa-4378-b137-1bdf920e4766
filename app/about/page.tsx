@@ -22,9 +22,8 @@ export default function AboutPage() {
     <>
       <SiteHeader />
       <main className="min-h-svh">
-        <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-28 md:grid-cols-12 md:gap-16 md:px-8 md:pb-28 md:pt-40">
-          <div className="flex flex-col gap-10 md:col-span-7">
-            <header className="flex flex-col gap-6">
+        <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-20 pt-28 md:grid-cols-12 md:gap-x-16 md:gap-y-10 md:px-8 md:pb-28 md:pt-40">
+            <header className="flex flex-col gap-6 md:col-span-7">
               <p className="rise flex items-center gap-4 text-xs font-medium uppercase tracking-[0.36em] text-primary">
                 <span className="h-px w-12 bg-primary" aria-hidden="true" />
                 About Danielle
@@ -37,7 +36,23 @@ export default function AboutPage() {
               </h1>
             </header>
 
-            <div className="rise flex max-w-2xl flex-col gap-6" style={{ animationDelay: '240ms' }}>
+          <figure
+            className="rise relative mx-auto w-full max-w-xs pt-6 sm:max-w-sm md:col-span-5 md:col-start-8 md:row-span-2 md:row-start-1 md:mr-0 md:max-w-md md:self-start"
+            style={{ animationDelay: '200ms' }}
+          >
+            <div className="absolute inset-x-4 bottom-0 top-[22%] border border-primary/70 md:inset-x-6" aria-hidden="true" />
+            <Image
+              src="/images/danielle-portrait.png"
+              alt="Danielle Palmer, founder of ÉLEVÉ Business Partners, in a black turtleneck with a pink blazer over her shoulder"
+              width={842}
+              height={1327}
+              priority
+              sizes="(min-width: 768px) 38vw, (min-width: 640px) 24rem, 20rem"
+              className="relative h-auto w-full"
+            />
+          </figure>
+
+            <div className="rise flex max-w-2xl flex-col gap-6 md:col-span-7" style={{ animationDelay: '240ms' }}>
               {story.map((paragraph, i) => (
                 <p
                   key={i}
@@ -51,17 +66,6 @@ export default function AboutPage() {
                 </p>
               ))}
             </div>
-          </div>
-
-          <figure className="rise relative aspect-[4/5] overflow-hidden border border-border md:col-span-5 md:self-start" style={{ animationDelay: '360ms' }}>
-            <Image
-              src="/images/about-desk.png"
-              alt="A brass desk lamp lighting an open notebook with a hand-drawn workflow diagram, glasses and coffee"
-              fill
-              sizes="(min-width: 768px) 40vw, 100vw"
-              className="object-cover"
-            />
-          </figure>
         </section>
 
         <section aria-labelledby="quote" className="border-y border-border bg-card">
